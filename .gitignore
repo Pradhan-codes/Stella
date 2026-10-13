@@ -1,0 +1,85 @@
+# ====================================
+# Environment variables and secrets
+# ====================================
+
+.env
+.env.*
+!.env.example
+
+# Private keys and credentials
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+secrets.json
+
+# ====================================
+# Python
+# ====================================
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+venv/
+.venv/
+env/
+
+# ====================================
+# Node.js and frontend builds
+# ====================================
+
+node_modules/
+dist/
+build/
+coverage/
+
+# ====================================
+# Stella runtime data (root directory)
+# ====================================
+
+/data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs and temporary files
+*.log
+tmp/
+temp/
+
+# ====================================
+# Local AI models and large artifacts
+# ====================================
+
+*.gguf
+*.safetensors
+*.pt
+*.pth
+*.onnx
+
+# ====================================
+# Operating system and IDE files
+# ====================================
+
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ====================================
+# Other tools
+# ====================================
+
+.terraform/
+
+# ====================================
+# Generated binaries
+# ====================================
+
+*.exe
+*.dll
