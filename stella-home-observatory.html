@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stella Home: Observatory Concept</title>
+<style>
+:root{--void:#06040c;--plum:#150e22;--violet:#8f78d4;--teal:#5fd1c4;--silver:#e2deef;--dim:#a29bba;--rose:#eaaac7;--line:rgba(226,222,239,.14);
+--serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;--sans:"Segoe UI",system-ui,-apple-system,Arial,sans-serif;--mx:0;--my:0}
+*{box-sizing:border-box;margin:0}
+html,body{min-height:100%}
+body{background:var(--void);color:var(--silver);font:15px/1.5 var(--sans);overflow-x:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--teal);outline-offset:3px;border-radius:8px}
+.px{transform:translate3d(calc(var(--mx)*var(--d)*-1px),calc(var(--my)*var(--d)*-1px),0)}
+.nebula{position:fixed;inset:-6%;--d:10;z-index:0;background:
+ radial-gradient(40% 35% at 50% 46%,rgba(234,170,199,.20),transparent 70%),
+ radial-gradient(55% 45% at 82% 12%,rgba(95,209,196,.10),transparent 70%),
+ radial-gradient(60% 50% at 10% 85%,rgba(143,120,212,.22),transparent 70%),
+ linear-gradient(180deg,#0d0818,#06040c)}
+#stars{position:fixed;inset:-3%;width:106%;height:106%;--d:22;z-index:0;pointer-events:none}
+.app{position:relative;z-index:1;min-height:100vh;display:grid;grid-template-rows:auto 1fr auto;padding:0 clamp(16px,3vw,44px) 22px}
+
+header{display:flex;align-items:center;gap:16px;padding:18px 0;flex-wrap:wrap}
+.brand{font:600 26px/1 var(--serif);letter-spacing:.03em}
+.chip{display:inline-flex;gap:8px;align-items:center;padding:5px 12px;border:1px solid var(--line);border-radius:99px;font-size:13px;color:var(--dim)}
+.chip i{width:7px;height:7px;border-radius:50%;background:#6f6886}
+.enter{margin-left:auto;padding:11px 24px;border-radius:99px;font-weight:600;color:#fff;background:linear-gradient(135deg,#8a70d6,#5a47a6);box-shadow:0 0 30px rgba(143,120,212,.4);transition:box-shadow .3s,transform .3s}
+.enter:hover{box-shadow:0 0 52px rgba(143,120,212,.7);transform:translateY(-1px)}
+
+.scene{display:grid;grid-template-columns:minmax(220px,1fr) auto minmax(220px,1fr);gap:clamp(12px,2.5vw,40px);align-items:center;min-height:0}
+.side{max-width:34ch}
+.side.r{justify-self:end}
+.hello{font:italic 500 clamp(30px,3.4vw,50px)/1.1 var(--serif)}
+.hello span{display:block;font:400 clamp(16px,1.4vw,20px)/1.4 var(--sans);font-style:normal;color:var(--dim);margin-top:10px}
+.read{margin-top:30px;padding-left:16px;border-left:2px solid var(--c,var(--violet));transition:border-color .4s}
+.read h2{font:600 24px var(--serif)}
+.read p{color:var(--dim);font-size:14px}
+.read button{margin-top:10px;color:var(--teal);font-size:14px;border-bottom:1px solid rgba(95,209,196,.4);transition:border-color .3s}
+.read button:hover{border-color:var(--teal)}
+h3{font:600 18px var(--serif);margin-bottom:8px}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:14px;color:var(--dim);border-bottom:1px solid var(--line)}
+.kv b{font-weight:500;color:var(--silver)}
+.empty{margin-top:26px;color:var(--dim);font-size:14px}
+.empty em{display:block;font:italic 17px var(--serif);color:var(--silver);margin-bottom:4px}
+
+/* astrolabe + stella */
+.ring{position:relative;width:min(calc(100vh - 190px),52vw);min-width:340px;aspect-ratio:1}
+.decor{position:absolute;inset:0;--d:30}
+.decor svg{width:100%;height:100%;overflow:visible}
+.tick{transform-origin:400px 400px;animation:spin 140s linear infinite}
+.dash{transform-origin:400px 400px;animation:spin 220s linear infinite reverse}
+@keyframes spin{to{transform:rotate(360deg)}}
+.halo{position:absolute;left:50%;top:41%;width:46%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;
+ background:radial-gradient(circle,rgba(234,170,199,.34),rgba(143,120,212,.10) 55%,transparent 70%);animation:glow 8s ease-in-out infinite}
+@keyframes glow{50%{opacity:.7}}
+.rig{position:absolute;left:50%;top:15%;height:70%;aspect-ratio:300/520;--d:46;margin-left:-20.19%;
+ -webkit-mask-image:linear-gradient(180deg,#000 62%,transparent 98%);mask-image:linear-gradient(180deg,#000 62%,transparent 98%);
+ transform:translate3d(calc(var(--mx)*-6px),calc(var(--my)*-4px),0) rotate(calc(var(--mx)*1.4deg));transform-origin:50% 90%}
+.rig>div{height:100%;animation:breathe 7s ease-in-out infinite}
+@keyframes breathe{50%{transform:translateY(-5px)}}
+.rig svg,.rig img{width:100%;height:100%;display:block}
+.rig img{object-fit:contain;object-position:bottom}
+.crystal{animation:pulse 4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.5}}
+.mist{position:absolute;left:-6%;right:-6%;bottom:10%;height:22%;--d:64;background:radial-gradient(50% 60% at 50% 50%,rgba(143,120,212,.28),transparent 70%);filter:blur(16px);pointer-events:none}
+.note{position:absolute;left:0;right:0;bottom:-2px;text-align:center;font-size:12px;color:var(--dim)}
+.node{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:5px;padding:4px;z-index:3}
+.node i{display:block;width:var(--s);height:var(--s);border-radius:50%;background:var(--bg);box-shadow:0 0 0 1px rgba(255,255,255,.14),0 0 16px var(--g);transition:transform .35s,box-shadow .35s}
+.node span{font:500 13px var(--serif);letter-spacing:.03em;opacity:.78;transition:opacity .3s}
+.node:hover i,.node:focus-visible i,.node.on i{transform:scale(1.3);box-shadow:0 0 0 1px rgba(255,255,255,.45),0 0 46px var(--g)}
+.node:hover span,.node.on span{opacity:1}
+
+/* dock */
+.dock{justify-self:center;display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;padding:8px;border-radius:99px;background:rgba(21,14,34,.6);backdrop-filter:blur(12px);border:1px solid var(--line)}
+.dock button{display:inline-flex;align-items:center;gap:9px;padding:9px 16px;border-radius:99px;font-size:14px;transition:background .3s}
+.dock button:hover{background:rgba(255,255,255,.07)}
+.dock button i{width:9px;height:9px;border-radius:50%;background:var(--c);box-shadow:0 0 10px var(--c)}
+.dock .speak{color:var(--dim);min-width:230px;justify-content:space-between;border-right:1px solid var(--line);border-radius:99px 0 0 99px;margin-right:4px}
+
+.veil{position:fixed;inset:0;z-index:20;display:grid;place-items:center;text-align:center;padding:24px;background:radial-gradient(circle,#2a1a4d,#04020a 70%);clip-path:circle(0% at 92% 5%);transition:clip-path 1s cubic-bezier(.7,0,.2,1)}
+.veil.show{clip-path:circle(150% at 92% 5%)}
+.veil h2{font:600 36px var(--serif);margin-bottom:8px}
+.veil p{color:var(--dim);max-width:46ch;margin:0 auto 20px}
+.veil button{padding:9px 20px;border-radius:99px;border:1px solid rgba(95,209,196,.5);color:var(--teal)}
+.toast{position:fixed;left:50%;bottom:90px;transform:translate(-50%,16px);opacity:0;z-index:30;padding:10px 18px;border-radius:99px;background:#241640;border:1px solid var(--line);font-size:14px;transition:.35s;pointer-events:none;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+@media (max-width:1040px){
+ .scene{grid-template-columns:1fr;justify-items:center;text-align:left}
+ .ring{width:min(100%,640px);order:-1;min-width:0}
+ .side,.side.r{justify-self:stretch;max-width:560px;width:100%}
+ .node span{font-size:12px}
+ .dock .speak{min-width:0;flex:1 1 100%;border-right:0;border-bottom:1px solid var(--line);border-radius:99px;margin:0 0 4px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01s!important}.px,.rig{transform:none!important}.rig{transform:none!important}}
+</style>
+</head>
+<body>
+<div class="nebula px" aria-hidden="true"></div>
+<canvas id="stars" class="px" aria-hidden="true"></canvas>
+
+<div class="app">
+<header>
+  <div class="brand">Stella</div>
+  <span class="chip"><i></i>Local engine offline</span>
+  <button class="enter" id="enterBtn">Enter the Universe</button>
+</header>
+
+<div class="scene">
+  <div class="side">
+    <h1 class="hello">Welcome back.<span>Your universe is waiting.</span></h1>
+    <div class="read" id="read" aria-live="polite">
+      <h2 id="rN"></h2><p id="rR"></p><p>Mapped in the universe. Not connected in this mock.</p>
+      <button id="rO">Open</button>
+    </div>
+  </div>
+
+  <div class="ring" id="ring">
+    <div class="decor px" aria-hidden="true">
+      <svg viewBox="0 0 800 800" id="astro">
+        <circle cx="400" cy="400" r="392" fill="none" stroke="rgba(226,222,239,.16)"/>
+        <circle class="dash" cx="400" cy="400" r="320" fill="none" stroke="rgba(143,120,212,.35)" stroke-dasharray="3 10"/>
+        <circle cx="400" cy="400" r="250" fill="none" stroke="rgba(226,222,239,.07)"/>
+        <g class="tick" id="ticks"></g>
+      </svg>
+    </div>
+    <div class="halo"></div>
+    <div class="rig px" role="img" aria-label="Stella's companion stage. Placeholder silhouette until artwork is connected.">
+      <div>
+        <svg viewBox="0 0 300 520" id="sil" aria-hidden="true">
+          <defs>
+            <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eaaac7"/><stop offset="1" stop-color="#8f78d4"/></linearGradient>
+            <linearGradient id="bd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a2656"/><stop offset="1" stop-color="#170f26"/></linearGradient>
+            <radialGradient id="fc"><stop offset="0" stop-color="#f4dbe8" stop-opacity=".30"/><stop offset="1" stop-color="#f4dbe8" stop-opacity=".07"/></radialGradient>
+            <radialGradient id="cy"><stop offset="0" stop-color="#a3f5ea"/><stop offset="1" stop-color="#5fd1c4" stop-opacity="0"/></radialGradient>
+          </defs>
+          <!-- Each group is a future animation layer. The face area is left clear on purpose. -->
+          <g id="layer-hair-back"><path d="M150 36C88 36 66 100 70 172C74 252 46 332 60 424C80 446 112 434 120 402L180 402C188 434 220 446 240 424C254 332 226 252 230 172C234 100 212 36 150 36Z" fill="url(#bd)" stroke="url(#rim)" stroke-opacity=".55"/></g>
+          <g id="layer-body"><path d="M133 268L167 268L170 302C200 304 214 322 220 350L246 520L54 520L80 350C86 322 100 304 130 302Z" fill="#26183c" stroke="url(#rim)" stroke-opacity=".4"/></g>
+          <g id="layer-head"><ellipse cx="150" cy="172" rx="54" ry="64" fill="url(#fc)" stroke="url(#rim)" stroke-opacity=".35"/></g>
+          <g id="layer-hair-front"><path d="M94 160C102 98 198 98 206 160C190 136 172 124 150 142C128 124 110 136 94 160Z" fill="#2d1c48" stroke="url(#rim)" stroke-opacity=".5"/></g>
+          <g id="layer-crystal" class="crystal"><circle cx="150" cy="316" r="16" fill="url(#cy)"/><path d="M150 306L156 316L150 328L144 316Z" fill="#5fd1c4"/></g>
+        </svg>
+        <img id="art" alt="Stella" hidden>
+      </div>
+    </div>
+    <div class="mist px" aria-hidden="true"></div>
+  </div>
+
+  <div class="side r">
+    <h3>Stella's state</h3>
+    <div class="kv"><span>Local engine</span><b>Offline</b></div>
+    <div class="kv"><span>Companion</span><b>Standby</b></div>
+    <div class="kv"><span>Workspaces mapped</span><b>8</b></div>
+    <div class="kv"><span>Workspaces connected</span><b>None yet</b></div>
+    <p class="empty"><em>No recent activity.</em>Work you do in any workspace will be logged here.</p>
+  </div>
+</div>
+
+<div class="dock" role="toolbar" aria-label="Quick actions">
+  <button class="speak" data-t="Concept only: the engine is offline, so conversation is not available yet."><span>Speak to Stella</span><small>Engine offline</small></button>
+  <button data-go="Yuki" style="--c:#a08ce6"><i></i>Open memory</button>
+  <button data-go="Rin" style="--c:#6fa5e0"><i></i>Enter coding</button>
+  <button data-go="Sakura" style="--c:#eaaac7"><i></i>Continue a creative project</button>
+</div>
+</div>
+
+<div class="veil" id="veil" role="dialog" aria-label="Universe transition concept"><div>
+  <h2>The 3D Universe opens here</h2>
+  <p>In the real app this hands off to the existing Universe screen and its orbital animation. The mock does not include it.</p>
+  <button id="back">Back to Home</button></div></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+// Set to an image URL or data URI to replace the placeholder silhouette.
+const STELLA_ART="";
+const W=[
+ {n:"Asuna",r:"Home and navigation",c:"#dcd8ea",bg:"radial-gradient(circle at 35% 30%,#fff,#cfc8e6 60%,#8a82a8)",s:30},
+ {n:"Rei",r:"Knowledge",c:"#5fd1c4",bg:"radial-gradient(circle at 35% 30%,#d9fff8,#5fd1c4 55%,#1f6f72)",s:24},
+ {n:"Sakura",r:"Creativity",c:"#eaaac7",bg:"radial-gradient(circle at 35% 30%,#fff0f6,#eaaac7 55%,#a4527c)",s:28},
+ {n:"Rin",r:"Coding",c:"#6fa5e0",bg:"radial-gradient(circle at 35% 30%,#e1f0ff,#6fa5e0 55%,#2b4f86)",s:26},
+ {n:"Hina",r:"Time and routines",c:"#e6b877",bg:"radial-gradient(circle at 35% 30%,#fff3dc,#e6b877 55%,#9a6a36)",s:24},
+ {n:"Rem",r:"Integrations",c:"#8f8ce6",bg:"radial-gradient(circle at 35% 30%,#e7e4ff,#8f8ce6 55%,#4a42a8)",s:26},
+ {n:"Akari",r:"Agents and automation",c:"#e88f7c",bg:"radial-gradient(circle at 35% 30%,#ffe9e1,#e88f7c 55%,#9e4538)",s:26},
+ {n:"Yuki",r:"Memory",c:"#a08ce6",bg:"radial-gradient(circle at 35% 30%,#fff,#c9bff0 55%,#7a68c0)",s:28}
+];
+const $=id=>document.getElementById(id), reduce=matchMedia("(prefers-reduced-motion: reduce)");
+let ticks="";for(let i=0;i<96;i++){const a=i*3.75*Math.PI/180,l=i%8===0?16:6,r=392;
+ ticks+=`<line x1="${400+r*Math.cos(a)}" y1="${400+r*Math.sin(a)}" x2="${400+(r-l)*Math.cos(a)}" y2="${400+(r-l)*Math.sin(a)}" stroke="rgba(226,222,239,${i%8===0?.4:.16})"/>`}
+$("ticks").innerHTML=ticks;
+
+let sel=0;
+function show(i){const w=W[i];$("rN").textContent=w.n;$("rR").textContent=w.r;$("rO").textContent="Open "+w.n;$("read").style.setProperty("--c",w.c);
+ W.forEach((x,j)=>x.el.classList.toggle("on",j===i))}
+function pick(i){sel=i;show(i);toast(`Concept only: this would open ${W[i].n} (${W[i].r}) in the real app.`)}
+W.forEach((w,i)=>{
+ const a=(-90+i*45)*Math.PI/180, b=document.createElement("button");
+ b.className="node";b.style.cssText=`left:${50+44.2*Math.cos(a)}%;top:${50+44.2*Math.sin(a)}%;--bg:${w.bg};--g:${w.c}99;--s:${w.s}px`;
+ b.innerHTML=`<i></i><span>${w.n}</span>`;b.setAttribute("aria-label",`${w.n}, ${w.r}`);
+ b.onclick=()=>pick(i);b.onmouseenter=b.onfocus=()=>show(i);b.onmouseleave=()=>show(sel);
+ $("ring").appendChild(b);w.el=b});
+$("rO").onclick=()=>pick(W.findIndex(w=>w.el.classList.contains("on")));
+show(0);
+document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>pick(W.findIndex(w=>w.n===b.dataset.go)));
+document.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>toast(b.dataset.t));
+
+$("enterBtn").onclick=()=>{$("veil").classList.add("show");$("back").focus()};
+$("back").onclick=()=>{$("veil").classList.remove("show");$("enterBtn").focus()};
+addEventListener("keydown",e=>{if(e.key==="Escape")$("back").onclick()});
+let tt;function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("show"),2800)}
+
+if(STELLA_ART){$("art").src=STELLA_ART;$("art").hidden=false;$("sil").style.display="none"}else{
+ const n=document.createElement("p");n.className="note";n.textContent="Placeholder silhouette. Artwork or a layered rig attaches here.";$("ring").appendChild(n)}
+
+// pointer parallax: a stand-in for future head and gaze tracking
+let tx=0,ty=0,cx=0,cy=0;
+addEventListener("pointermove",e=>{tx=e.clientX/innerWidth*2-1;ty=e.clientY/innerHeight*2-1});
+addEventListener("pointerleave",()=>{tx=ty=0});
+
+// stars
+const cv=$("stars"),g=cv.getContext("2d");let S=[];
+function size(){cv.width=cv.offsetWidth;cv.height=cv.offsetHeight;S=Array.from({length:Math.round(cv.width*cv.height/8000)},()=>({x:Math.random()*cv.width,y:Math.random()*cv.height,r:Math.random()*1.2+.2,v:Math.random()*.07+.02,p:Math.random()*6}))}
+function frame(ts){
+ if(!reduce.matches){cx+=(tx-cx)*.05;cy+=(ty-cy)*.05;document.documentElement.style.setProperty("--mx",cx.toFixed(3));document.documentElement.style.setProperty("--my",cy.toFixed(3))}
+ g.clearRect(0,0,cv.width,cv.height);
+ for(const s of S){if(!reduce.matches){s.y-=s.v;if(s.y<0)s.y=cv.height}
+  g.fillStyle=`rgba(226,222,239,${reduce.matches?.5:.3+.35*Math.sin(ts/1800+s.p)})`;g.beginPath();g.arc(s.x,s.y,s.r,0,6.3);g.fill()}
+ if(!reduce.matches)requestAnimationFrame(frame)}
+size();requestAnimationFrame(frame);
+addEventListener("resize",()=>{size();if(reduce.matches)frame(0)});
+reduce.addEventListener("change",()=>location.reload());
+</script>
+</body>
+</html>

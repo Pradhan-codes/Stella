@@ -1,0 +1,606 @@
+/* ==========================================================================
+   Stella Home — Approved Observatory Concept Stylesheet
+   Based on stella-home-observatory.html
+   ========================================================================== */
+
+:root {
+  --void: #06040c;
+  --plum: #150e22;
+  --violet: #8f78d4;
+  --teal: #5fd1c4;
+  --silver: #e2deef;
+  --dim: #a29bba;
+  --rose: #eaaac7;
+  --line: rgba(226, 222, 239, 0.14);
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: "Plus Jakarta Sans", "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  --mx: 0;
+  --my: 0;
+}
+
+/* Background Atmosphere */
+.nebula {
+  position: fixed;
+  inset: -6%;
+  --d: 10;
+  z-index: 0;
+  background:
+    radial-gradient(40% 35% at 50% 46%, rgba(234, 170, 199, 0.20), transparent 70%),
+    radial-gradient(55% 45% at 82% 12%, rgba(95, 209, 196, 0.10), transparent 70%),
+    radial-gradient(60% 50% at 10% 85%, rgba(143, 120, 212, 0.22), transparent 70%),
+    linear-gradient(180deg, #0d0818, #06040c);
+  pointer-events: none;
+}
+
+#stars {
+  position: fixed;
+  inset: -3%;
+  width: 106%;
+  height: 106%;
+  --d: 22;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.px {
+  transform: translate3d(calc(var(--mx) * var(--d) * -1px), calc(var(--my) * var(--d) * -1px), 0);
+  transition: transform 0.1s cubic-bezier(0.1, 0.9, 0.2, 1);
+}
+
+/* Observatory App Shell */
+.observatory-app {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  width: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  padding: 0 clamp(16px, 3vw, 44px) 22px;
+  background-color: var(--void);
+  color: var(--silver);
+  font: 15px/1.5 var(--sans);
+  overflow-x: hidden;
+}
+
+/* Header */
+.observatory-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 0;
+  flex-wrap: wrap;
+}
+
+.observatory-header .brand {
+  font: 600 26px/1 var(--serif);
+  letter-spacing: 0.03em;
+  color: var(--silver);
+}
+
+.observatory-header .chip {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  padding: 5px 12px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.observatory-header .chip i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #6f6886;
+}
+
+.enter-universe-btn {
+  margin-left: auto;
+  padding: 11px 24px;
+  border-radius: 99px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #fff;
+  background: linear-gradient(135deg, #8a70d6, #5a47a6);
+  box-shadow: 0 0 30px rgba(143, 120, 212, 0.4);
+  border: none;
+  cursor: pointer;
+  transition: box-shadow 0.3s, transform 0.3s;
+}
+
+.enter-universe-btn:hover {
+  box-shadow: 0 0 52px rgba(143, 120, 212, 0.7);
+  transform: translateY(-1px);
+}
+
+/* 3-Column Scene */
+.observatory-scene {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto minmax(220px, 1fr);
+  gap: clamp(12px, 2.5vw, 40px);
+  align-items: center;
+  min-height: 0;
+}
+
+.observatory-scene .side {
+  max-width: 34ch;
+}
+
+.observatory-scene .side.r {
+  justify-self: end;
+}
+
+.hello {
+  font: italic 500 clamp(30px, 3.4vw, 50px)/1.1 var(--serif);
+  color: var(--silver);
+}
+
+.hello span {
+  display: block;
+  font: 400 clamp(16px, 1.4vw, 20px)/1.4 var(--sans);
+  font-style: normal;
+  color: var(--dim);
+  margin-top: 10px;
+}
+
+/* Selected Workspace Readout */
+.read {
+  margin-top: 30px;
+  padding-left: 16px;
+  border-left: 2px solid var(--c, var(--violet));
+  transition: border-color 0.4s ease;
+}
+
+.read h2 {
+  font: 600 24px var(--serif);
+  color: var(--silver);
+}
+
+.read p {
+  color: var(--dim);
+  font-size: 14px;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.read-btn {
+  margin-top: 10px;
+  color: var(--teal);
+  font-size: 14px;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid rgba(95, 209, 196, 0.4);
+  cursor: pointer;
+  padding: 0;
+  transition: border-color 0.3s ease;
+}
+
+.read-btn:hover {
+  border-color: var(--teal);
+}
+
+/* Astrolabe Ring & Companion Stage */
+.ring {
+  position: relative;
+  width: min(calc(100vh - 190px), 52vw);
+  min-width: 340px;
+  aspect-ratio: 1;
+}
+
+.decor {
+  position: absolute;
+  inset: 0;
+  --d: 30;
+}
+
+.decor svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.tick {
+  transform-origin: 400px 400px;
+  animation: spin 140s linear infinite;
+}
+
+.dash {
+  transform-origin: 400px 400px;
+  animation: spin 220s linear infinite reverse;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.halo {
+  position: absolute;
+  left: 50%;
+  top: 41%;
+  width: 46%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(234, 170, 199, 0.34), rgba(143, 120, 212, 0.10) 55%, transparent 70%);
+  animation: glow 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes glow {
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.rig {
+  position: absolute;
+  left: 50%;
+  top: 15%;
+  height: 70%;
+  aspect-ratio: 300 / 520;
+  --d: 46;
+  margin-left: -20.19%;
+  -webkit-mask-image: linear-gradient(180deg, #000 62%, transparent 98%);
+  mask-image: linear-gradient(180deg, #000 62%, transparent 98%);
+  transform: translate3d(calc(var(--mx) * -6px), calc(var(--my) * -4px), 0) rotate(calc(var(--mx) * 1.4deg));
+  transform-origin: 50% 90%;
+  pointer-events: none;
+}
+
+.rig > div {
+  height: 100%;
+  animation: breathe 7s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.rig svg,
+.rig img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.crystal {
+  animation: pulse 4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.mist {
+  position: absolute;
+  left: -6%;
+  right: -6%;
+  bottom: 10%;
+  height: 22%;
+  --d: 64;
+  background: radial-gradient(50% 60% at 50% 50%, rgba(143, 120, 212, 0.28), transparent 70%);
+  filter: blur(16px);
+  pointer-events: none;
+}
+
+.note {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--dim);
+}
+
+/* 8 Planetary Nodes */
+.node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 4px;
+  z-index: 3;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.node i {
+  display: block;
+  width: var(--s);
+  height: var(--s);
+  border-radius: 50%;
+  background: var(--bg);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14), 0 0 16px var(--g);
+  transition: transform 0.35s ease, box-shadow 0.35s ease;
+}
+
+.node span {
+  font: 500 13px var(--serif);
+  letter-spacing: 0.03em;
+  color: var(--silver);
+  opacity: 0.78;
+  transition: opacity 0.3s ease;
+  white-space: nowrap;
+}
+
+.node:hover i,
+.node:focus-visible i,
+.node.on i {
+  transform: scale(1.3);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.45), 0 0 46px var(--g);
+}
+
+.node:hover span,
+.node:focus-visible span,
+.node.on span {
+  opacity: 1;
+}
+
+/* Stella State Panel (Right Column) */
+.observatory-scene .side.r h3 {
+  font: 600 18px var(--serif);
+  margin-bottom: 8px;
+  color: var(--silver);
+}
+
+.kv {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  font-size: 14px;
+  color: var(--dim);
+  border-bottom: 1px solid var(--line);
+}
+
+.kv b {
+  font-weight: 500;
+  color: var(--silver);
+}
+
+/* Extended State Telemetry Sections */
+.state-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 12px;
+}
+
+.state-group {
+  border-bottom: 1px solid var(--line);
+}
+
+.state-group-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dim);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  text-align: left;
+}
+
+.state-group-header:hover,
+.state-group-header.open {
+  color: var(--silver);
+}
+
+.state-toggle-icon {
+  font-size: 14px;
+  font-family: monospace;
+  color: var(--teal);
+}
+
+.state-group-content {
+  padding: 4px 0 8px;
+  animation: fadeIn 0.25s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sub-kv {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 12px;
+  color: var(--dim);
+}
+
+.sub-kv b {
+  font-weight: 500;
+  color: var(--silver);
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.sub-kv b.unavailable {
+  color: #8f88a4;
+  font-style: italic;
+  font-weight: 400;
+}
+
+.state-footnote {
+  font-size: 11px;
+  color: #7b738e;
+  margin-top: 6px;
+  line-height: 1.35;
+}
+
+.empty {
+  margin-top: 20px;
+  color: var(--dim);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.empty em {
+  display: block;
+  font: italic 16px var(--serif);
+  color: var(--silver);
+  margin-bottom: 3px;
+}
+
+/* Bottom Quick Actions Dock */
+.dock {
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 99px;
+  background: rgba(21, 14, 34, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--line);
+  margin-top: 8px;
+}
+
+.dock button {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 16px;
+  border-radius: 99px;
+  font-size: 14px;
+  color: var(--silver);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.dock button:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.dock button i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 0 10px var(--c);
+}
+
+.dock .speak {
+  color: var(--dim);
+  min-width: 230px;
+  justify-content: space-between;
+  border-right: 1px solid var(--line);
+  border-radius: 99px 0 0 99px;
+  margin-right: 4px;
+}
+
+.dock .speak small {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line);
+  color: #9f96b6;
+}
+
+/* Toast Notice */
+.observatory-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 90px;
+  transform: translate(-50%, 16px);
+  opacity: 0;
+  z-index: 30;
+  padding: 10px 18px;
+  border-radius: 99px;
+  background: #241640;
+  border: 1px solid var(--line);
+  font-size: 14px;
+  color: var(--silver);
+  transition: all 0.35s ease;
+  pointer-events: none;
+  max-width: 90vw;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.observatory-toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* Responsive Adaptations */
+@media (max-width: 1040px) {
+  .observatory-scene {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: left;
+    gap: 24px;
+  }
+
+  .ring {
+    width: min(100%, 640px);
+    order: -1;
+    min-width: 0;
+  }
+
+  .observatory-scene .side,
+  .observatory-scene .side.r {
+    justify-self: stretch;
+    max-width: 560px;
+    width: 100%;
+  }
+
+  .node span {
+    font-size: 12px;
+  }
+
+  .dock .speak {
+    min-width: 0;
+    flex: 1 1 100%;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    border-radius: 99px;
+    margin: 0 0 4px;
+  }
+}
+
+/* Accessibility: Prefers Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition-duration: 0.01s !important;
+  }
+
+  .px,
+  .rig {
+    transform: none !important;
+  }
+}
