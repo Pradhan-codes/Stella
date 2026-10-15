@@ -3,9 +3,10 @@ import { WorkspaceCardData } from '../../types/dashboard';
 
 interface WorkspacesSectionProps {
   workspaces: WorkspaceCardData[];
+  onOpenUniverse?: () => void;
 }
 
-export const WorkspacesSection: React.FC<WorkspacesSectionProps> = ({ workspaces }) => {
+export const WorkspacesSection: React.FC<WorkspacesSectionProps> = ({ workspaces, onOpenUniverse }) => {
   return (
     <section className="workspaces-section" id="workspaces-section" aria-labelledby="workspaces-heading">
       <div className="section-header-row">
@@ -18,17 +19,18 @@ export const WorkspacesSection: React.FC<WorkspacesSectionProps> = ({ workspaces
           </h2>
           <span className="sample-tag">Sample Data</span>
         </div>
-        <a
-          href="#all-workspaces"
-          className="section-link"
+        <button
+          type="button"
+          className="section-link-btn"
           id="link-all-workspaces"
-          title="Workspaces explorer preview"
+          title="Open Stella's 3D celestial universe"
+          onClick={onOpenUniverse}
         >
-          <span>View all workspaces</span>
+          <span>View all in Universe</span>
           <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>
             arrow_forward
           </span>
-        </a>
+        </button>
       </div>
 
       {/* 3 Workspace Cards Grid */}

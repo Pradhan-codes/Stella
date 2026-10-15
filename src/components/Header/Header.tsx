@@ -1,6 +1,10 @@
 import React from 'react';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  onLaunchUniverse?: () => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({ onLaunchUniverse }) => {
   return (
     <header className="header-bar" id="stella-header">
       {/* Brand + Constellation Badge */}
@@ -59,10 +63,14 @@ export const Header: React.FC = () => {
         <button
           type="button"
           id="btn-launch-universe"
-          className="planned-action-btn"
-          title="The 3D celestial universe is planned for later phases and not active here."
+          className="launch-universe-btn"
+          title="Enter Stella's 3D celestial universe"
+          onClick={onLaunchUniverse}
         >
-          <span>✨ Launch Universe (Planned)</span>
+          <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>
+            hub
+          </span>
+          <span>Launch Universe</span>
         </button>
       </div>
     </header>

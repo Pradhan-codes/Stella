@@ -70,7 +70,7 @@ export const SAMPLE_ACTIVITIES: ActivityItem[] = [
 
 export const NAV_ITEMS: NavItem[] = [
   { id: 'home', label: 'Home', icon: 'home', active: true },
-  { id: 'universe', label: 'Universe Map', icon: 'hub', planned: true },
+  { id: 'universe', label: 'Universe Map', icon: 'hub' },
   { id: 'projects', label: 'Projects', icon: 'folder', planned: true },
   { id: 'memory', label: 'Memory Graph', icon: 'grain', planned: true },
   { id: 'agents', label: 'Autonomous Agents', icon: 'smart_toy', planned: true },
