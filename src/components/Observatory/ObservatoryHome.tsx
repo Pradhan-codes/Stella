@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
+import { usePresentation } from '../../context/PresentationContext';
 import { StarCanvas } from './StarCanvas';
 import { AstrolabeStage } from './AstrolabeStage';
 import { StellaStatePanel } from './StellaStatePanel';
@@ -13,6 +14,8 @@ interface ObservatoryHomeProps {
 }
 
 export const ObservatoryHome: React.FC<ObservatoryHomeProps> = ({ onLaunchUniverse }) => {
+  const { setPresentationMode, isElectron, minimizeWindow, maximizeWindow, closeWindow } =
+    usePresentation();
   const [selectedNodeIndex, setSelectedNodeIndex] = useState<number>(0);
   const [hoveredNodeIndex, setHoveredNodeIndex] = useState<number | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -65,22 +68,77 @@ export const ObservatoryHome: React.FC<ObservatoryHomeProps> = ({ onLaunchUniver
 
       {/* 2. Main Observatory Application Shell */}
       <div className="observatory-app" id="observatory-root">
-        {/* Header */}
+        {/* Header with Titlebar Navigation and Window Controls */}
         <header className="observatory-header">
           <div className="brand">Stella</div>
           <span className="chip" title="System running in local offline standby mode">
             <i aria-hidden="true" />
             Local engine offline
           </span>
-          <button
-            type="button"
-            className="enter-universe-btn"
-            id="enterBtn"
-            onClick={onLaunchUniverse}
-            aria-label="Enter the 3D Stella celestial universe"
-          >
-            Enter the Universe
-          </button>
+
+          <div className="header-actions">
+            <button
+              type="button"
+              className="companion-mode-btn"
+              id="companionModeBtn"
+              onClick={() => setPresentationMode('companion-overlay')}
+              title="Switch to desktop companion overlay"
+              aria-label="Switch to desktop companion overlay"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                picture_in_picture_alt
+              </span>
+              <span>Desktop Companion</span>
+            </button>
+
+            <button
+              type="button"
+              className="enter-universe-btn"
+              id="enterBtn"
+              onClick={onLaunchUniverse}
+              aria-label="Enter the 3D Stella celestial universe"
+            >
+              Enter the Universe
+            </button>
+
+            {isElectron && (
+              <div className="win-controls-bar" aria-label="Window controls">
+                <button
+                  type="button"
+                  className="win-control-btn"
+                  onClick={minimizeWindow}
+                  title="Minimize"
+                  aria-label="Minimize window"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                    remove
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className="win-control-btn"
+                  onClick={maximizeWindow}
+                  title="Maximize / Restore"
+                  aria-label="Maximize or restore window"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                    crop_square
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className="win-control-btn close"
+                  onClick={closeWindow}
+                  title="Close"
+                  aria-label="Close window"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                    close
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
         </header>
 
         {/* 3-Column Scene */}

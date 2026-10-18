@@ -1,5 +1,5 @@
 import React from 'react';
-import { CelestialAvatar } from './CelestialAvatar';
+import { CantarellaAvatar } from './CantarellaAvatar';
 
 export const CompanionPanel: React.FC = () => {
   return (
@@ -43,10 +43,10 @@ export const CompanionPanel: React.FC = () => {
             ✦
           </span>
 
-          {/* Serene Anime Avatar Composition (Enhanced 2–2.5x Scale) */}
+          {/* Serene Anime Avatar Composition */}
           <div className="avatar-wrapper">
             <div className="avatar-halo-circle" aria-hidden="true" />
-            <CelestialAvatar />
+            <CantarellaAvatar />
           </div>
         </div>
 

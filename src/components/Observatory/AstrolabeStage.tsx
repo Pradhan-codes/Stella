@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { ObservatoryNode } from './types';
+import { CantarellaAvatar } from '../CompanionPanel/CantarellaAvatar';
 
 interface AstrolabeStageProps {
   nodes: ObservatoryNode[];
@@ -69,72 +70,20 @@ export const AstrolabeStage: React.FC<AstrolabeStageProps> = ({
       {/* 2. Atmospheric Pulsing Halo */}
       <div className="halo" aria-hidden="true" />
 
-      {/* 3. Dedicated 2D Stella Companion Stage Rig */}
+      {/* 3. Dedicated Stella Celestial Companion Stage Rig */}
       <div
         className="rig px"
         role="img"
-        aria-label="Stella's companion stage. Placeholder silhouette until artwork is connected."
+        aria-label="Stella Celestial Companion Cantarella"
       >
         <div>
-          <svg viewBox="0 0 300 520" id="sil" aria-hidden="true">
-            <defs>
-              <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#eaaac7" />
-                <stop offset="100%" stopColor="#8f78d4" />
-              </linearGradient>
-              <linearGradient id="bd" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#3a2656" />
-                <stop offset="100%" stopColor="#170f26" />
-              </linearGradient>
-              <radialGradient id="fc">
-                <stop offset="0%" stopColor="#f4dbe8" stopOpacity="0.30" />
-                <stop offset="100%" stopColor="#f4dbe8" stopOpacity="0.07" />
-              </radialGradient>
-              <radialGradient id="cy">
-                <stop offset="0%" stopColor="#a3f5ea" />
-                <stop offset="100%" stopColor="#5fd1c4" stopOpacity="0" />
-              </radialGradient>
-            </defs>
-
-            {/* Layered Rig Geometry */}
-            <g id="layer-hair-back">
-              <path
-                d="M150 36C88 36 66 100 70 172C74 252 46 332 60 424C80 446 112 434 120 402L180 402C188 434 220 446 240 424C254 332 226 252 230 172C234 100 212 36 150 36Z"
-                fill="url(#bd)"
-                stroke="url(#rim)"
-                strokeOpacity="0.55"
-              />
-            </g>
-            <g id="layer-body">
-              <path
-                d="M133 268L167 268L170 302C200 304 214 322 220 350L246 520L54 520L80 350C86 322 100 304 130 302Z"
-                fill="#26183c"
-                stroke="url(#rim)"
-                strokeOpacity="0.4"
-              />
-            </g>
-            <g id="layer-head">
-              <ellipse cx="150" cy="172" rx="54" ry="64" fill="url(#fc)" stroke="url(#rim)" strokeOpacity="0.35" />
-            </g>
-            <g id="layer-hair-front">
-              <path
-                d="M94 160C102 98 198 98 206 160C190 136 172 124 150 142C128 124 110 136 94 160Z"
-                fill="#2d1c48"
-                stroke="url(#rim)"
-                strokeOpacity="0.5"
-              />
-            </g>
-            <g id="layer-crystal" className="crystal">
-              <circle cx="150" cy="316" r="16" fill="url(#cy)" />
-              <path d="M150 306L156 316L150 328L144 316Z" fill="#5fd1c4" />
-            </g>
-          </svg>
+          <CantarellaAvatar framing="portrait" />
         </div>
       </div>
 
       {/* 4. Nebula Mist Layer */}
       <div className="mist px" aria-hidden="true" />
-      <p className="note">Placeholder silhouette. Artwork or a layered rig attaches here.</p>
+      <p className="note">Cantarella • Celestial Companion</p>
 
       {/* 5. 8 Celestial Astrolabe Workspace Nodes */}
       {nodes.map((node, i) => {

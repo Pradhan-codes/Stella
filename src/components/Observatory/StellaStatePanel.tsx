@@ -1,9 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSystemMonitoring } from './useSystemMonitoring';
+import {
+  cantarellaExpressionController,
+  CantarellaExpressionName,
+  ExpressionStatus,
+} from '../CompanionPanel/CantarellaExpressionController';
+import {
+  cantarellaAnimationManager,
+  VRMA_MOTIONS,
+  AnimationStatus,
+} from '../CompanionPanel/CantarellaAnimationManager';
 
 export const StellaStatePanel: React.FC = () => {
   const { metrics, companionState, weatherState } = useSystemMonitoring();
   const [activeTab, setActiveTab] = useState<'system' | 'companion' | 'weather' | null>('system');
+  const [expressionStatus, setExpressionStatus] = useState<ExpressionStatus>(() =>
+    cantarellaExpressionController.getStatus()
+  );
+  const [animationStatus, setAnimationStatus] = useState<AnimationStatus>(() =>
+    cantarellaAnimationManager.getStatus()
+  );
+  const [expressionNotice, setExpressionNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    return cantarellaExpressionController.subscribe(setExpressionStatus);
+  }, []);
+
+  useEffect(() => {
+    return cantarellaAnimationManager.subscribe(setAnimationStatus);
+  }, []);
 
   const toggleTab = (tab: 'system' | 'companion' | 'weather') => {
     setActiveTab((prev) => (prev === tab ? null : tab));
@@ -109,9 +134,124 @@ export const StellaStatePanel: React.FC = () => {
                 <b>{companionState.personaMood}</b>
               </div>
               <div className="sub-kv">
+                <span>Active expression</span>
+                <b style={{ textTransform: 'capitalize', color: 'var(--teal)' }}>
+                  {expressionStatus.currentExpression}
+                  {expressionStatus.isTransitioning ? ' (~)' : ''}
+                </b>
+              </div>
+              <div className="sub-kv">
+                <span>Active motion</span>
+                <b style={{ color: animationStatus.isPlaying ? 'var(--teal)' : 'var(--silver)' }}>
+                  {animationStatus.activeMotionName || 'Rest Pose'}
+                  {animationStatus.isLoading ? ' (loading...)' : animationStatus.isPlaying ? ' (~)' : ''}
+                </b>
+              </div>
+              <div className="sub-kv">
                 <span>Speech engine</span>
                 <b className="unavailable">{companionState.speechEngine}</b>
               </div>
+
+              {/* Expression Controller Foundation (Phase 2) */}
+              <div className="expression-picker-group">
+                <span className="expression-picker-label">Facial Expression (Phase 2):</span>
+                <div className="expression-buttons-row">
+                  {(['neutral', 'happy', 'sad', 'angry', 'playful', 'shy'] as CantarellaExpressionName[]).map((name) => {
+                    const isSelected = expressionStatus.targetExpression === name;
+                    const isSupported = cantarellaExpressionController.isExpressionSupported(name);
+                    return (
+                      <button
+                        key={name}
+                        type="button"
+                        id={`btn-expr-${name}`}
+                        className={`expression-btn ${isSelected ? 'active' : ''} ${!isSupported ? 'unsupported' : ''}`}
+                        title={!isSupported ? 'Unsupported by model (no blendshape group)' : `Transition to ${name}`}
+                        onClick={() => {
+                          const res = cantarellaExpressionController.setExpression(name);
+                          if (!res.success && res.message) {
+                            setExpressionNotice(res.message);
+                          } else {
+                            setExpressionNotice(null);
+                          }
+                        }}
+                      >
+                        {name}
+                      </button>
+                    );
+                  })}
+                </div>
+                {expressionNotice && (
+                  <p className="expression-notice">{expressionNotice}</p>
+                )}
+              </div>
+
+              {/* Fallback Gestures */}
+              <div className="expression-picker-group">
+                <span className="expression-picker-label">Gestures (Fallback):</span>
+                <div className="expression-buttons-row">
+                  <button
+                    type="button"
+                    id="btn-observatory-wave"
+                    className="expression-btn"
+                    title="Gentle greeting wave (hand-coded fallback)"
+                    onClick={() => cantarellaExpressionController.playGesture('wave')}
+                  >
+                    Wave 👋
+                  </button>
+                  <button
+                    type="button"
+                    id="btn-observatory-nod"
+                    className="expression-btn"
+                    title="Gentle affirmation nod (hand-coded fallback)"
+                    onClick={() => cantarellaExpressionController.playGesture('nod')}
+                  >
+                    Nod 🙏
+                  </button>
+                </div>
+              </div>
+
+              {/* Animation-Test Controls (VRMA Motion Pack) */}
+              <div className="expression-picker-group">
+                <div className="vrma-section-header">
+                  <span className="expression-picker-label">Animation-Test Controls (VRMA):</span>
+                  {animationStatus.isPlaying && (
+                    <button
+                      type="button"
+                      id="btn-observatory-vrma-stop"
+                      className="vrma-stop-btn"
+                      onClick={() => cantarellaAnimationManager.stopMotion(0.35)}
+                      title="Stop animation and return smoothly to rest pose"
+                    >
+                      Stop
+                    </button>
+                  )}
+                </div>
+                <div className="expression-buttons-row">
+                  {VRMA_MOTIONS.map((motion) => {
+                    const isActive = animationStatus.activeMotionId === motion.id && animationStatus.isPlaying;
+                    const isLoading = animationStatus.activeMotionId === motion.id && animationStatus.isLoading;
+                    return (
+                      <button
+                        key={motion.id}
+                        type="button"
+                        id={`btn-observatory-vrma-${motion.id.toLowerCase()}`}
+                        className={`expression-btn vrma-btn ${isActive ? 'active' : ''} ${isLoading ? 'loading' : ''}`}
+                        title={`${motion.name} (${motion.file}): ${motion.hint}`}
+                        onClick={() => {
+                          if (isActive) {
+                            cantarellaAnimationManager.stopMotion(0.35);
+                          } else {
+                            cantarellaAnimationManager.playMotion(motion.id);
+                          }
+                        }}
+                      >
+                        {motion.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <p className="state-footnote">
                 Stella is resting in offline standby. No AI inference is running in background.
               </p>

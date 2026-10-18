@@ -83,3 +83,16 @@ Thumbs.db
 
 *.exe
 *.dll
+
+
+# ====================================
+# Local avatar assets (license-sensitive)
+# ====================================
+
+*.vrm
+*.vrma
+!public/animations/VRMA_*.vrma
+!public/animations/うでぶんぶん.vrma
+
+# Temporary diagnostic and test scripts
+scratch/

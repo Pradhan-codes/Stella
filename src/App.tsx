@@ -1,12 +1,15 @@
 import React, { useState, Suspense, lazy } from 'react';
+import { PresentationProvider, usePresentation } from './context/PresentationContext';
 import { ObservatoryHome } from './components/Observatory/ObservatoryHome';
+import { CompanionOverlay } from './components/CompanionOverlay/CompanionOverlay';
 
 // Lazy-load 3D Universe scene so GPU resources are initialized only when opened
 const UniverseView = lazy(() =>
   import('./components/Universe/UniverseView').then((m) => ({ default: m.UniverseView }))
 );
 
-export const App: React.FC = () => {
+const StellaPresentationManager: React.FC = () => {
+  const { windowType } = usePresentation();
   const [activeNavId, setActiveNavId] = useState<string>('home');
 
   const handleLaunchUniverse = () => {
@@ -17,10 +20,28 @@ export const App: React.FC = () => {
     setActiveNavId('home');
   };
 
+  const isUniverse = activeNavId === 'universe';
+
+  // Standalone Companion Window: Renders ONLY Cantarella and minimal overlay controls
+  // Zero Observatory, zero 3D Universe, zero opaque desktop dashboard
+  if (windowType === 'companion') {
+    return <CompanionOverlay />;
+  }
+
   return (
     <div className="app-container" id="stella-app-root">
-      {/* 3D Universe Mode (Active when user enters Universe) */}
-      {activeNavId === 'universe' ? (
+      {/* Approved Stella Observatory Home UI (Preserved across ordinary navigation) */}
+      <div
+        className="observatory-view-container"
+        style={{
+          display: isUniverse ? 'none' : 'contents',
+        }}
+      >
+        <ObservatoryHome onLaunchUniverse={handleLaunchUniverse} />
+      </div>
+
+      {/* 3D Universe Mode (Mounted lazily on demand when entered, cleanly unmounted on exit) */}
+      {isUniverse && (
         <Suspense
           fallback={
             <div className="universe-loading-fallback">
@@ -35,11 +56,16 @@ export const App: React.FC = () => {
         >
           <UniverseView onBackToHome={handleBackToHome} />
         </Suspense>
-      ) : (
-        /* Approved Stella Observatory Home UI */
-        <ObservatoryHome onLaunchUniverse={handleLaunchUniverse} />
       )}
     </div>
+  );
+};
+
+export const App: React.FC = () => {
+  return (
+    <PresentationProvider>
+      <StellaPresentationManager />
+    </PresentationProvider>
   );
 };
 

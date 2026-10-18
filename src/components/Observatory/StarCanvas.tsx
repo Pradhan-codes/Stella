@@ -76,10 +76,23 @@ export const StarCanvas: React.FC = () => {
         ctx.fill();
       }
 
-      if (!reduceMedia.matches) {
+      if (!reduceMedia.matches && isVisible) {
         animationFrameId = requestAnimationFrame(render);
+      } else {
+        animationFrameId = 0;
       }
     };
+
+    let isVisible = true;
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        isVisible = entry.isIntersecting;
+        if (isVisible && !reduceMedia.matches && !animationFrameId) {
+          animationFrameId = requestAnimationFrame(render);
+        }
+      }
+    });
+    observer.observe(canvas);
 
     resize();
     render(0);
@@ -89,7 +102,8 @@ export const StarCanvas: React.FC = () => {
     window.addEventListener('pointerleave', handlePointerLeave);
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      observer.disconnect();
       window.removeEventListener('resize', resize);
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerleave', handlePointerLeave);

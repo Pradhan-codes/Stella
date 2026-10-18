@@ -69,12 +69,15 @@
   gap: 16px;
   padding: 18px 0;
   flex-wrap: wrap;
+  -webkit-app-region: drag;
+  user-select: none;
 }
 
 .observatory-header .brand {
   font: 600 26px/1 var(--serif);
   letter-spacing: 0.03em;
   color: var(--silver);
+  -webkit-app-region: no-drag;
 }
 
 .observatory-header .chip {
@@ -86,6 +89,7 @@
   border-radius: 99px;
   font-size: 13px;
   color: var(--dim);
+  -webkit-app-region: no-drag;
 }
 
 .observatory-header .chip i {
@@ -95,18 +99,86 @@
   background: #6f6886;
 }
 
-.enter-universe-btn {
+.header-actions {
   margin-left: auto;
-  padding: 11px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  -webkit-app-region: no-drag;
+}
+
+.companion-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: 99px;
+  font-weight: 500;
+  font-size: 13.5px;
+  color: var(--silver, #e2deef);
+  background: rgba(21, 14, 34, 0.7);
+  border: 1px solid rgba(226, 222, 239, 0.18);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  -webkit-app-region: no-drag;
+}
+
+.companion-mode-btn:hover {
+  background: rgba(143, 120, 212, 0.2);
+  border-color: rgba(143, 120, 212, 0.45);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.win-controls-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  padding-left: 8px;
+  border-left: 1px solid var(--line);
+  -webkit-app-region: no-drag;
+}
+
+.win-control-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #a29bba;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  padding: 0;
+}
+
+.win-control-btn:hover {
+  background: rgba(226, 222, 239, 0.12);
+  color: #fff;
+}
+
+.win-control-btn.close:hover {
+  background: #e05252;
+  color: #fff;
+}
+
+.enter-universe-btn {
+  padding: 10px 22px;
   border-radius: 99px;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13.5px;
   color: #fff;
   background: linear-gradient(135deg, #8a70d6, #5a47a6);
   box-shadow: 0 0 30px rgba(143, 120, 212, 0.4);
   border: none;
   cursor: pointer;
   transition: box-shadow 0.3s, transform 0.3s;
+  -webkit-app-region: no-drag;
 }
 
 .enter-universe-btn:hover {
@@ -262,7 +334,9 @@
 }
 
 .rig svg,
-.rig img {
+.rig img,
+.rig canvas,
+.cantarella-avatar-root {
   width: 100%;
   height: 100%;
   display: block;
@@ -452,6 +526,112 @@
   color: #7b738e;
   margin-top: 6px;
   line-height: 1.35;
+}
+
+.expression-picker-group {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(226, 222, 239, 0.1);
+}
+
+.expression-picker-label {
+  display: block;
+  font-size: 11px;
+  color: var(--dim);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.expression-buttons-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.expression-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--silver);
+  font-size: 11px;
+  padding: 3px 7px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-transform: capitalize;
+  transition: all 0.2s ease;
+}
+
+.expression-btn:hover {
+  background: rgba(143, 120, 212, 0.2);
+  border-color: rgba(143, 120, 212, 0.4);
+}
+
+.expression-btn.active {
+  background: rgba(111, 207, 186, 0.2);
+  border-color: var(--teal);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 0 8px rgba(111, 207, 186, 0.3);
+}
+
+.expression-btn.unsupported {
+  opacity: 0.5;
+  border-style: dotted;
+  text-decoration: line-through;
+}
+
+.expression-notice {
+  font-size: 10px;
+  color: #df9e82;
+  margin-top: 6px;
+  line-height: 1.3;
+}
+
+.vrma-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.vrma-section-header .expression-picker-label {
+  margin-bottom: 0;
+}
+
+.vrma-stop-btn {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.vrma-stop-btn:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: #ef4444;
+  color: #fff;
+}
+
+.expression-btn.vrma-btn {
+  font-size: 10px;
+  padding: 2px 6px;
+}
+
+.expression-btn.vrma-btn.active {
+  background: rgba(95, 209, 196, 0.25);
+  border-color: #5fd1c4;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 0 8px rgba(95, 209, 196, 0.35);
+}
+
+.expression-btn.vrma-btn.loading {
+  opacity: 0.6;
+  cursor: wait;
 }
 
 .empty {
