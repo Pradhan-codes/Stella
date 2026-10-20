@@ -7,6 +7,8 @@ import { OBSERVATORY_NODES } from './observatoryData';
 import { PLANETS_DATA } from '../Universe/planetData';
 import { PlanetData } from '../Universe/types';
 import { PlanetWorkspaceModal } from '../Universe/PlanetWorkspaceModal';
+import { useBrainStatus } from '../../services/brainService';
+import { StellaDialogueModal } from './StellaDialogueModal';
 import './observatory.css';
 
 interface ObservatoryHomeProps {
@@ -16,6 +18,8 @@ interface ObservatoryHomeProps {
 export const ObservatoryHome: React.FC<ObservatoryHomeProps> = ({ onLaunchUniverse }) => {
   const { setPresentationMode, isElectron, minimizeWindow, maximizeWindow, closeWindow } =
     usePresentation();
+  const { isOnline, health } = useBrainStatus();
+  const [isDialogueOpen, setIsDialogueOpen] = useState<boolean>(false);
   const [selectedNodeIndex, setSelectedNodeIndex] = useState<number>(0);
   const [hoveredNodeIndex, setHoveredNodeIndex] = useState<number | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -71,9 +75,16 @@ export const ObservatoryHome: React.FC<ObservatoryHomeProps> = ({ onLaunchUniver
         {/* Header with Titlebar Navigation and Window Controls */}
         <header className="observatory-header">
           <div className="brand">Stella</div>
-          <span className="chip" title="System running in local offline standby mode">
+          <span
+            className={`chip ${isOnline ? 'online' : ''}`}
+            title={
+              isOnline
+                ? `Local engine active (${health?.model || '127.0.0.1:8000'})`
+                : 'System running in local offline standby mode'
+            }
+          >
             <i aria-hidden="true" />
-            Local engine offline
+            {isOnline ? 'Local engine active' : 'Local engine offline'}
           </span>
 
           <div className="header-actions">
@@ -181,21 +192,25 @@ export const ObservatoryHome: React.FC<ObservatoryHomeProps> = ({ onLaunchUniver
           />
 
           {/* Right Column: Extended Stella's State Panel */}
-          <StellaStatePanel />
+          <StellaStatePanel isOnline={isOnline} health={health} />
         </div>
 
         {/* Bottom Quick Actions Dock */}
         <div className="dock" role="toolbar" aria-label="Quick actions">
           <button
             type="button"
-            className="speak"
-            onClick={() =>
-              showToast('Concept only: the engine is offline, so conversation is not available yet.')
-            }
-            aria-label="Speak to Stella (Offline)"
+            className={`speak ${isOnline ? 'online' : ''}`}
+            onClick={() => {
+              if (isOnline) {
+                setIsDialogueOpen(true);
+              } else {
+                showToast('Local engine offline. Run "python -m brain.service" to connect.');
+              }
+            }}
+            aria-label={isOnline ? 'Speak to Stella (Active)' : 'Speak to Stella (Offline)'}
           >
             <span>Speak to Stella</span>
-            <small>Engine offline</small>
+            <small>{isOnline ? 'Engine active' : 'Engine offline'}</small>
           </button>
 
           <button
@@ -248,6 +263,13 @@ export const ObservatoryHome: React.FC<ObservatoryHomeProps> = ({ onLaunchUniver
           onGoHome={() => setActiveWorkspacePlanet(null)}
         />
       )}
+
+      {/* 5. Connected Stella Dialogue Modal */}
+      <StellaDialogueModal
+        isOpen={isDialogueOpen}
+        onClose={() => setIsDialogueOpen(false)}
+        health={health}
+      />
     </>
   );
 };

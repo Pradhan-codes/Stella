@@ -96,3 +96,6 @@ Thumbs.db
 
 # Temporary diagnostic and test scripts
 scratch/
+
+# Local TTS voice models
+/voices/

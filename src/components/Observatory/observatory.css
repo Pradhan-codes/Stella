@@ -784,3 +784,254 @@
     transform: none !important;
   }
 }
+
+/* ============================================================================
+   Step 3.7: Active Brain Engine Status and Floating Dialogue Modal
+   ============================================================================ */
+
+.observatory-header .chip.online i {
+  background: var(--teal, #6fcfba);
+  box-shadow: 0 0 10px rgba(111, 207, 186, 0.7);
+}
+
+.dock .speak.online {
+  color: #fff;
+}
+
+.dock .speak.online small {
+  background: rgba(111, 207, 186, 0.15);
+  border-color: rgba(111, 207, 186, 0.4);
+  color: var(--teal, #6fcfba);
+}
+
+.stella-dialogue-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 4, 15, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+  animation: dialogueFadeIn 0.25s ease-out;
+}
+
+@keyframes dialogueFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.stella-dialogue-card {
+  width: 100%;
+  max-width: 640px;
+  height: 580px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  background: rgba(22, 15, 38, 0.94);
+  border: 1px solid rgba(226, 222, 239, 0.2);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(143, 120, 212, 0.15);
+  overflow: hidden;
+}
+
+.stella-dialogue-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(14, 8, 25, 0.5);
+}
+
+.stella-dialogue-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stella-dialogue-title h3 {
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  margin: 0;
+  color: var(--silver);
+  letter-spacing: 0.04em;
+}
+
+.stella-dialogue-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: rgba(111, 207, 186, 0.15);
+  border: 1px solid rgba(111, 207, 186, 0.3);
+  color: var(--teal, #6fcfba);
+}
+
+.stella-dialogue-close {
+  background: none;
+  border: none;
+  color: var(--dim);
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  transition: all 0.2s;
+}
+
+.stella-dialogue-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.stella-dialogue-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stella-msg {
+  display: flex;
+  flex-direction: column;
+  max-width: 82%;
+  animation: msgSlide 0.2s ease-out;
+}
+
+@keyframes msgSlide {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stella-msg.user {
+  align-self: flex-end;
+}
+
+.stella-msg.assistant {
+  align-self: flex-start;
+}
+
+.stella-msg-bubble {
+  padding: 12px 16px;
+  border-radius: 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.stella-msg.user .stella-msg-bubble {
+  background: linear-gradient(135deg, #7c5ce9, #6242c7);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.stella-msg.assistant .stella-msg-bubble {
+  background: rgba(35, 25, 58, 0.8);
+  border: 1px solid rgba(226, 222, 239, 0.15);
+  color: var(--silver);
+  border-bottom-left-radius: 4px;
+}
+
+.stella-msg.error .stella-msg-bubble {
+  background: rgba(90, 20, 30, 0.7);
+  border-color: rgba(220, 80, 80, 0.4);
+  color: #ffcdd2;
+}
+
+.stella-msg-meta {
+  font-size: 10.5px;
+  color: var(--dim);
+  margin-top: 4px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stella-action-banner {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: rgba(255, 193, 7, 0.08);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 10px;
+  font-size: 12px;
+  color: #ffd54f;
+  line-height: 1.4;
+}
+
+.stella-action-banner code {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+.stella-dialogue-input-area {
+  padding: 14px 20px;
+  border-top: 1px solid var(--line);
+  background: rgba(14, 8, 25, 0.4);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.stella-dialogue-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(226, 222, 239, 0.15);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--silver);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.stella-dialogue-input:focus {
+  border-color: rgba(143, 120, 212, 0.6);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.stella-dialogue-send-btn {
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #8f78d4, #6e52c7);
+  color: #fff;
+  font-weight: 500;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stella-dialogue-send-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(143, 120, 212, 0.4);
+}
+
+.stella-dialogue-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -10,8 +10,17 @@ import {
   VRMA_MOTIONS,
   AnimationStatus,
 } from '../CompanionPanel/CantarellaAnimationManager';
+import { HealthResponsePayload } from '../../services/brainService';
 
-export const StellaStatePanel: React.FC = () => {
+interface StellaStatePanelProps {
+  isOnline?: boolean;
+  health?: HealthResponsePayload | null;
+}
+
+export const StellaStatePanel: React.FC<StellaStatePanelProps> = ({
+  isOnline = false,
+  health = null,
+}) => {
   const { metrics, companionState, weatherState } = useSystemMonitoring();
   const [activeTab, setActiveTab] = useState<'system' | 'companion' | 'weather' | null>('system');
   const [expressionStatus, setExpressionStatus] = useState<ExpressionStatus>(() =>
@@ -41,7 +50,9 @@ export const StellaStatePanel: React.FC = () => {
       {/* 1. Primary Core Key-Values */}
       <div className="kv">
         <span>Local engine</span>
-        <b>Offline</b>
+        <b style={{ color: isOnline ? 'var(--teal)' : 'var(--silver)' }}>
+          {isOnline ? `Active (${health?.model || '127.0.0.1'})` : 'Offline'}
+        </b>
       </div>
       <div className="kv">
         <span>Companion</span>
@@ -123,7 +134,9 @@ export const StellaStatePanel: React.FC = () => {
             <div className="state-group-content" id="companion-persona-details">
               <div className="sub-kv">
                 <span>Engine status</span>
-                <b>{companionState.engineStatus}</b>
+                <b style={{ color: isOnline ? 'var(--teal)' : undefined }}>
+                  {isOnline ? `Online (${health?.fsm_state || 'STANDBY'})` : companionState.engineStatus}
+                </b>
               </div>
               <div className="sub-kv">
                 <span>Presence state</span>
