@@ -1,4 +1,5 @@
 import { VRM } from '@pixiv/three-vrm';
+import { AvatarSyncPayload } from '../../types/desktop';
 
 export type CantarellaExpressionName =
   | 'neutral'
@@ -6,7 +7,8 @@ export type CantarellaExpressionName =
   | 'sad'
   | 'angry'
   | 'playful'
-  | 'shy';
+  | 'shy'
+  | 'curious';
 
 export interface ExpressionOptions {
   /** Target weight / intensity between 0.0 and 1.0 (defaults to 1.0) */
@@ -27,6 +29,8 @@ export interface ExpressionTransitionResult {
 
 export type CantarellaGestureName = 'wave' | 'nod';
 
+export type CantarellaConversationState = 'idle' | 'listening' | 'thinking' | 'speaking';
+
 export interface ExpressionStatus {
   currentExpression: CantarellaExpressionName;
   targetExpression: CantarellaExpressionName;
@@ -34,6 +38,7 @@ export interface ExpressionStatus {
   isTransitioning: boolean;
   supported: boolean;
   activeGesture?: CantarellaGestureName | null;
+  conversationState?: CantarellaConversationState;
 }
 
 export interface ExpressionDiagnostic {
@@ -66,12 +71,12 @@ const EXPRESSION_VRM_MAP: Record<CantarellaExpressionName, string | null> = {
   sad: 'sad',
   angry: 'angry',
   playful: 'relaxed',
-  shy: null,
+  shy: 'happy',      // Graceful fallback: soft warm smile
+  curious: 'relaxed', // Graceful fallback: calm attentive relaxed expression
 };
 
-const UNSUPPORTED_REASONS: Partial<Record<CantarellaExpressionName, string>> = {
-  shy: 'cantarella.vrm does not contain a shy/blush blendshape group or morph target.',
-};
+const UNSUPPORTED_REASONS: Partial<Record<CantarellaExpressionName, string>> = {};
+
 
 /**
  * CantarellaExpressionController
@@ -96,12 +101,103 @@ export class CantarellaExpressionController {
   private holdDurationTimer: number | null = null;
   private listeners: Set<ExpressionChangeListener> = new Set();
   private gestureHandler: ((gesture: CantarellaGestureName) => boolean) | null = null;
+  private conversationState: CantarellaConversationState = 'idle';
+
+  // Desktop IPC synchronization
+  private isApplyingRemoteUpdate: boolean = false;
+  private syncUnsubscribe: (() => void) | null = null;
+
+  constructor() {
+    this.initDesktopSync();
+  }
+
+  /**
+   * Initializes two-way desktop IPC synchronization across Electron windows.
+   */
+  public initDesktopSync(): void {
+    if (typeof window === 'undefined' || !window.stellaDesktop) return;
+
+    if (this.syncUnsubscribe) {
+      this.syncUnsubscribe();
+      this.syncUnsubscribe = null;
+    }
+
+    // 1. Fetch initial state snapshot if available
+    window.stellaDesktop
+      .getAvatarState?.()
+      .then((snapshot) => {
+        if (snapshot) {
+          this.applyRemoteAvatarState(snapshot);
+        }
+      })
+      .catch(() => {});
+
+    // 2. Subscribe to remote state updates from the other window
+    if (window.stellaDesktop.onAvatarStateChanged) {
+      this.syncUnsubscribe = window.stellaDesktop.onAvatarStateChanged((remoteState) => {
+        this.applyRemoteAvatarState(remoteState);
+      });
+    }
+  }
+
+  /**
+   * Broadcasts current avatar expression and conversation state across windows.
+   */
+  private broadcastAvatarState(options?: ExpressionOptions): void {
+    if (
+      this.isApplyingRemoteUpdate ||
+      typeof window === 'undefined' ||
+      !window.stellaDesktop?.sendAvatarState
+    ) {
+      return;
+    }
+
+    window.stellaDesktop.sendAvatarState({
+      expression: this.targetExpression,
+      intensity: this.targetWeight,
+      duration: options?.duration ?? this.transitionDuration,
+      holdDuration: options?.holdDuration,
+      conversationState: this.conversationState,
+      timestamp: Date.now(),
+    });
+  }
+
+  /**
+   * Safely applies a remote state update without triggering feedback loops.
+   */
+  public applyRemoteAvatarState(payload: AvatarSyncPayload): void {
+    if (!payload || typeof payload !== 'object') return;
+    this.isApplyingRemoteUpdate = true;
+    try {
+      if (payload.conversationState && payload.conversationState !== this.conversationState) {
+        this.setConversationState(payload.conversationState as CantarellaConversationState);
+      }
+
+      if (payload.expression) {
+        const expr = payload.expression as CantarellaExpressionName;
+        const options: ExpressionOptions = {
+          intensity: payload.intensity ?? 1.0,
+          duration: payload.duration ?? 0.35,
+          holdDuration: payload.holdDuration,
+        };
+
+        if (expr === 'neutral' && (!payload.intensity || payload.intensity <= 0)) {
+          this.resetToNeutral(options.duration);
+        } else {
+          this.setExpression(expr, options);
+        }
+      }
+    } finally {
+      this.isApplyingRemoteUpdate = false;
+    }
+  }
 
   /**
    * Connect an active VRM instance to this expression controller.
    */
   public attachVRM(vrm: VRM): void {
     this.vrm = vrm;
+    this.initDesktopSync();
 
     // Configure blink override behavior on expressions if supported by expressionManager
     if (vrm.expressionManager) {
@@ -152,28 +248,17 @@ export class CantarellaExpressionController {
   ): ExpressionTransitionResult {
     const vrmPreset = EXPRESSION_VRM_MAP[name];
 
-    if (vrmPreset === null) {
-      const reason = UNSUPPORTED_REASONS[name] || `Expression '${name}' is not supported by this model.`;
-      console.warn(`[Cantarella Expression] ${reason}`);
-      return {
-        success: false,
-        expression: name,
-        vrmPreset: null,
-        supported: false,
-        message: reason,
-      };
-    }
-
     const intensity = Math.max(0, Math.min(1, options.intensity ?? 1.0));
     const duration = Math.max(0.01, options.duration ?? 0.4);
 
     // If already at target with identical weight, no-op
     if (this.targetExpression === name && Math.abs(this.targetWeight - intensity) < 0.001) {
       return {
-        success: true,
+        success: vrmPreset !== null,
         expression: name,
         vrmPreset,
-        supported: true,
+        supported: vrmPreset !== null,
+        message: vrmPreset === null ? UNSUPPORTED_REASONS[name] : undefined,
       };
     }
 
@@ -195,6 +280,19 @@ export class CantarellaExpressionController {
     }
 
     this.notifyListeners();
+    this.broadcastAvatarState(options);
+
+    if (vrmPreset === null) {
+      const reason = UNSUPPORTED_REASONS[name] || `Expression '${name}' is not supported by this model's facial blendshapes.`;
+      console.warn(`[Cantarella Expression] ${reason}`);
+      return {
+        success: false,
+        expression: name,
+        vrmPreset: null,
+        supported: false,
+        message: reason,
+      };
+    }
 
     return {
       success: true,
@@ -372,6 +470,10 @@ export class CantarellaExpressionController {
           name: 'shy',
           reason: UNSUPPORTED_REASONS.shy || 'Model lacks blush/shy blendshapes',
         },
+        {
+          name: 'curious',
+          reason: UNSUPPORTED_REASONS.curious || 'Model lacks curious blendshapes',
+        },
       ],
       vrmExpressionWeights: vrmWeights,
     };
@@ -391,6 +493,17 @@ export class CantarellaExpressionController {
     this.listeners.forEach((fn) => fn(status));
   }
 
+  public setConversationState(state: CantarellaConversationState): void {
+    if (this.conversationState === state) return;
+    this.conversationState = state;
+    this.notifyListeners();
+    this.broadcastAvatarState();
+  }
+
+  public getConversationState(): CantarellaConversationState {
+    return this.conversationState;
+  }
+
   public getStatus(): ExpressionStatus {
     return {
       currentExpression: this.currentExpression,
@@ -398,6 +511,7 @@ export class CantarellaExpressionController {
       activeWeight: this.currentWeight,
       isTransitioning: this.isTransitioningState,
       supported: this.isExpressionSupported(this.currentExpression),
+      conversationState: this.conversationState,
     };
   }
 }
@@ -408,5 +522,7 @@ export const cantarellaExpressionController = new CantarellaExpressionController
 // Expose on window in browser / Electron environment for inspection and automated tests
 if (typeof window !== 'undefined') {
   (window as unknown as { __stellaAvatarController?: CantarellaExpressionController }).__stellaAvatarController =
+    cantarellaExpressionController;
+  (window as unknown as { __stellaExpressionController?: CantarellaExpressionController }).__stellaExpressionController =
     cantarellaExpressionController;
 }

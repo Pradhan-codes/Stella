@@ -10,6 +10,10 @@ import {
 } from './CantarellaExpressionController';
 import { CantarellaIdleController } from './CantarellaIdleController';
 import { cantarellaAnimationManager } from './CantarellaAnimationManager';
+import {
+  CantarellaLipSyncController,
+  cantarellaLipSyncController,
+} from './CantarellaLipSync';
 
 export interface CantarellaAvatarProps {
   className?: string;
@@ -17,6 +21,7 @@ export interface CantarellaAvatarProps {
   modelUrl?: string;
   framing?: 'full' | 'portrait';
   controller?: CantarellaExpressionController;
+  lipSyncController?: CantarellaLipSyncController;
   activeExpression?: CantarellaExpressionName;
   onLoaded?: (vrm: VRM) => void;
   onError?: (error: unknown) => void;
@@ -32,6 +37,7 @@ export const CantarellaAvatar: React.FC<CantarellaAvatarProps> = ({
   modelUrl = './models/cantarella.vrm',
   framing = 'full',
   controller,
+  lipSyncController,
   activeExpression,
   onLoaded,
   onError,
@@ -42,6 +48,7 @@ export const CantarellaAvatar: React.FC<CantarellaAvatarProps> = ({
   });
 
   const expressionCtrl = controller || cantarellaExpressionController;
+  const lipSyncCtrl = lipSyncController || cantarellaLipSyncController;
 
   // React to external activeExpression changes
   useEffect(() => {
@@ -142,9 +149,25 @@ export const CantarellaAvatar: React.FC<CantarellaAvatarProps> = ({
 
       // Attach VRM to imported VRMA animation manager (AnimationMixer)
       cantarellaAnimationManager.attachVRM(vrm);
+      idleController.setAnimationManager(cantarellaAnimationManager);
 
       // Connect active VRM to facial expression controller and gesture handler
       expressionCtrl.attachVRM(vrm);
+
+      // Connect active VRM to real speech-driven lip-sync controller
+      lipSyncCtrl.attachVRM(vrm);
+
+      // Ensure facial emotions never block mouth shapes during speech
+      if (vrm.expressionManager) {
+        ['happy', 'sad', 'angry', 'relaxed', 'neutral'].forEach((preset) => {
+          const expr = vrm.expressionManager?.getExpression(preset);
+          if (expr) {
+            expr.overrideMouth = 'none';
+          }
+        });
+      }
+
+      idleController.setExpressionController(expressionCtrl);
       expressionCtrl.setGestureHandler((gesture) => {
         const isMotionActive = cantarellaAnimationManager.isPlaying();
         return idleController?.playGesture(gesture, isMotionActive) ?? false;
@@ -283,6 +306,9 @@ export const CantarellaAvatar: React.FC<CantarellaAvatarProps> = ({
         // 3. Smooth facial expression transitions
         expressionCtrl.update(delta);
 
+        // 3b. Real speech-driven mouth animation (lip-sync)
+        lipSyncCtrl.update(delta);
+
         // 4. Update VRM (updates humanoid, spring bone physics, expressions, materials)
         currentVrm.update(delta);
       }
@@ -362,6 +388,7 @@ export const CantarellaAvatar: React.FC<CantarellaAvatarProps> = ({
       cantarellaAnimationManager.detachVRM();
       expressionCtrl.setGestureHandler(null);
       expressionCtrl.detachVRM();
+      lipSyncCtrl.detachVRM();
 
       if (currentVrm) {
         scene.remove(currentVrm.scene);

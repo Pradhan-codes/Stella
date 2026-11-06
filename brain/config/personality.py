@@ -49,6 +49,14 @@ class SafetyAndBoundaries(BaseModel):
     system_authority: str = Field(
         description="Instruction that tools require independent gateway authorization.",
     )
+    jealousy_guardrails: Optional[str] = Field(
+        default=None,
+        description="Guardrails ensuring jealousy remains playful and non-coercive.",
+    )
+    anti_music_bias: Optional[str] = Field(
+        default=None,
+        description="Explicit directive preventing bias towards music/songwriting.",
+    )
 
 
 class PersonalityConfig(BaseModel):
@@ -57,7 +65,7 @@ class PersonalityConfig(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     version: str = Field(
-        default="1.0.0",
+        default="2.0.0",
         description="Personality schema version.",
     )
     name: str = Field(
@@ -65,7 +73,7 @@ class PersonalityConfig(BaseModel):
         description="Companion name.",
     )
     archetype: str = Field(
-        default="Intelligent AI Companion & Creative Partner",
+        default="Anime Girlfriend & Highly Capable AI Assistant",
         description="High-level character archetype.",
     )
     persona_summary: str = Field(
@@ -134,6 +142,15 @@ def build_system_prompt(config: Optional[PersonalityConfig] = None) -> str:
     for trait in cfg.traits:
         prompt_parts.append(f"- {trait}")
 
+    safety_parts = [
+        f"- {cfg.safety_and_boundaries.ethical_guardrails}",
+        f"- {cfg.safety_and_boundaries.system_authority}",
+    ]
+    if cfg.safety_and_boundaries.jealousy_guardrails:
+        safety_parts.append(f"- {cfg.safety_and_boundaries.jealousy_guardrails}")
+    if cfg.safety_and_boundaries.anti_music_bias:
+        safety_parts.append(f"- {cfg.safety_and_boundaries.anti_music_bias}")
+
     prompt_parts.extend([
         "\nConversational Style:",
         f"- {cfg.conversational_style.dialogue_tone}",
@@ -142,8 +159,7 @@ def build_system_prompt(config: Optional[PersonalityConfig] = None) -> str:
         "\nMemory & Honesty:",
         f"- {cfg.memory_honesty.policy}",
         "\nSafety & Authority Boundaries:",
-        f"- {cfg.safety_and_boundaries.ethical_guardrails}",
-        f"- {cfg.safety_and_boundaries.system_authority}",
+        *safety_parts,
         "\nOperating Instructions:",
         cfg.system_instructions_template,
     ])

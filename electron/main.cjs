@@ -8,6 +8,95 @@ let companionWindow = null;
 let currentMode = 'workspace';
 let isTransitioning = false;
 
+// Cached avatar state for synchronization across windows and reload recovery
+let cachedAvatarState = {
+  expression: 'neutral',
+  intensity: 1.0,
+  duration: 0.35,
+  holdDuration: 0,
+  conversationState: 'idle',
+  timestamp: Date.now(),
+};
+
+// Cached dialogue turn for output presentation and cross-window sync
+let cachedDialogueTurn = null;
+
+const VALID_DIALOGUE_STATUSES = new Set(['thinking', 'speaking', 'completed', 'error']);
+
+function validateAndSanitizeDialogueTurn(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+
+  const turnId =
+    typeof raw.turnId === 'string' && raw.turnId.trim().length > 0
+      ? raw.turnId.trim().slice(0, 128)
+      : `turn_${Date.now()}`;
+
+  const assistantText =
+    typeof raw.assistantText === 'string' ? raw.assistantText.slice(0, 8192) : '';
+
+  const userMessage =
+    typeof raw.userMessage === 'string' ? raw.userMessage.slice(0, 4096) : undefined;
+
+  const rawExpr =
+    typeof raw.expressionHint === 'string' ? raw.expressionHint.toLowerCase().trim() : null;
+  const expressionHint = rawExpr && rawExpr.length > 0 ? rawExpr.slice(0, 64) : null;
+
+  const rawStatus = typeof raw.status === 'string' ? raw.status.toLowerCase().trim() : 'completed';
+  const status = VALID_DIALOGUE_STATUSES.has(rawStatus) ? rawStatus : 'completed';
+
+  const timestamp = typeof raw.timestamp === 'number' && !isNaN(raw.timestamp) ? raw.timestamp : Date.now();
+
+  return {
+    turnId,
+    assistantText,
+    userMessage,
+    expressionHint,
+    status,
+    timestamp,
+  };
+}
+
+const VALID_EXPRESSIONS = new Set([
+  'neutral',
+  'happy',
+  'sad',
+  'angry',
+  'playful',
+  'shy',
+  'curious',
+]);
+const VALID_CONV_STATES = new Set(['idle', 'listening', 'thinking', 'speaking']);
+
+function validateAndSanitizeAvatarState(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+
+  const rawExpr = typeof raw.expression === 'string' ? raw.expression.toLowerCase() : 'neutral';
+  const expression = VALID_EXPRESSIONS.has(rawExpr) ? rawExpr : 'neutral';
+
+  let intensity = typeof raw.intensity === 'number' && !isNaN(raw.intensity) ? raw.intensity : 1.0;
+  intensity = Math.max(0, Math.min(1.0, intensity));
+
+  let duration = typeof raw.duration === 'number' && !isNaN(raw.duration) ? raw.duration : 0.35;
+  duration = Math.max(0.01, Math.min(5.0, duration));
+
+  let holdDuration =
+    typeof raw.holdDuration === 'number' && !isNaN(raw.holdDuration) ? raw.holdDuration : 0;
+  holdDuration = Math.max(0, Math.min(60.0, holdDuration));
+
+  const rawConv =
+    typeof raw.conversationState === 'string' ? raw.conversationState.toLowerCase() : 'idle';
+  const conversationState = VALID_CONV_STATES.has(rawConv) ? rawConv : 'idle';
+
+  return {
+    expression,
+    intensity,
+    duration,
+    holdDuration,
+    conversationState,
+    timestamp: typeof raw.timestamp === 'number' ? raw.timestamp : Date.now(),
+  };
+}
+
 // Ensure only a single instance of Stella runs
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
@@ -152,13 +241,30 @@ function createCompanionWindow() {
     },
   });
 
-  companionWindow.setAlwaysOnTop(true, 'screen-saver');
+  if (process.platform === 'darwin') {
+    companionWindow.setAlwaysOnTop(true, 'screen-saver');
+  } else {
+    companionWindow.setAlwaysOnTop(true);
+  }
+
 
   companionWindow.webContents.on('console-message', (event) => {
     console.log(`[Companion Renderer Log] ${event.message}`);
   });
 
   loadContent(companionWindow, 'companion');
+
+  // Push latest avatar and dialogue state snapshot as soon as companion window finishes loading
+  companionWindow.webContents.on('did-finish-load', () => {
+    if (companionWindow && !companionWindow.isDestroyed() && companionWindow.webContents) {
+      if (cachedAvatarState) {
+        companionWindow.webContents.send('stella:avatar-state-changed', cachedAvatarState);
+      }
+      if (cachedDialogueTurn) {
+        companionWindow.webContents.send('stella:dialogue-turn-changed', cachedDialogueTurn);
+      }
+    }
+  });
 
   // If user closes companion overlay window, safely restore main Stella window
   companionWindow.on('close', (e) => {
@@ -196,12 +302,21 @@ async function switchToCompanionMode() {
     }
 
     // 2. Show companion overlay and instruct it to resume rendering
-    companionWindow.setAlwaysOnTop(true, 'screen-saver');
+    if (process.platform === 'darwin') {
+      companionWindow.setAlwaysOnTop(true, 'screen-saver');
+    } else {
+      companionWindow.setAlwaysOnTop(true);
+    }
     companionWindow.show();
     companionWindow.focus();
+
     if (companionWindow.webContents) {
       companionWindow.webContents.send('stella:resume-rendering');
       companionWindow.webContents.send('stella:presentation-mode-changed', 'companion-overlay');
+      companionWindow.webContents.send('stella:avatar-state-changed', cachedAvatarState);
+      if (cachedDialogueTurn) {
+        companionWindow.webContents.send('stella:dialogue-turn-changed', cachedDialogueTurn);
+      }
     }
 
     // 3. Hide main Stella window (mutual exclusion) and pause rendering
@@ -250,6 +365,10 @@ async function switchToWorkspaceMode() {
       if (mainWindow.webContents) {
         mainWindow.webContents.send('stella:resume-rendering');
         mainWindow.webContents.send('stella:presentation-mode-changed', 'workspace');
+        mainWindow.webContents.send('stella:avatar-state-changed', cachedAvatarState);
+        if (cachedDialogueTurn) {
+          mainWindow.webContents.send('stella:dialogue-turn-changed', cachedDialogueTurn);
+        }
       }
     }
 
@@ -326,8 +445,74 @@ ipcMain.on('stella:window-close', (event) => {
   }
 });
 
+// --------------------------------------------------------------------------
+// 4B. Avatar State Synchronization Handlers
+// --------------------------------------------------------------------------
+ipcMain.handle('stella:get-avatar-state', () => {
+  return cachedAvatarState;
+});
+
+ipcMain.on('stella:avatar-sync', (event, rawState) => {
+  const sanitized = validateAndSanitizeAvatarState(rawState);
+  if (!sanitized) return;
+
+  cachedAvatarState = sanitized;
+
+  // Broadcast sanitized state to other windows (excluding sender)
+  const senderWebContents = event.sender;
+  const windows = [mainWindow, companionWindow];
+
+  for (const win of windows) {
+    if (win && !win.isDestroyed() && win.webContents && win.webContents !== senderWebContents) {
+      win.webContents.send('stella:avatar-state-changed', sanitized);
+    }
+  }
+});
+
+// --------------------------------------------------------------------------
+// 4C. Conversational Dialogue Turn Synchronization Handlers
+// --------------------------------------------------------------------------
+ipcMain.handle('stella:get-dialogue-turn', () => {
+  return cachedDialogueTurn;
+});
+
+ipcMain.on('stella:dialogue-sync', (event, rawTurn) => {
+  const sanitized = validateAndSanitizeDialogueTurn(rawTurn);
+  if (!sanitized) return;
+
+  cachedDialogueTurn = sanitized;
+
+  // Broadcast sanitized turn to other windows (excluding sender)
+  const senderWebContents = event.sender;
+  const windows = [mainWindow, companionWindow];
+
+  for (const win of windows) {
+    if (win && !win.isDestroyed() && win.webContents && win.webContents !== senderWebContents) {
+      win.webContents.send('stella:dialogue-turn-changed', sanitized);
+    }
+  }
+});
+
+// --------------------------------------------------------------------------
+// 4D. Dynamic Animation Discovery Handlers
+// --------------------------------------------------------------------------
+const { scanAnimationDirectory } = require('./animationScanner.cjs');
+let cachedAnimationReport = null;
+
+ipcMain.handle('stella:discover-animations', async (_event, forceRescan) => {
+  if (!cachedAnimationReport || forceRescan) {
+    cachedAnimationReport = scanAnimationDirectory();
+  }
+  return cachedAnimationReport;
+});
+
 // App Lifecycle
 app.whenReady().then(() => {
+  try {
+    cachedAnimationReport = scanAnimationDirectory();
+  } catch (err) {
+    console.warn('[Main] Initial animation scan warning:', err.message);
+  }
   createMainWindow();
 
   app.on('activate', () => {

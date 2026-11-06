@@ -7,9 +7,9 @@ import {
 } from '../CompanionPanel/CantarellaExpressionController';
 import {
   cantarellaAnimationManager,
-  VRMA_MOTIONS,
   AnimationStatus,
 } from '../CompanionPanel/CantarellaAnimationManager';
+import { DiscoveredAnimationItem, AnimationCategory } from '../../types/animation';
 import { HealthResponsePayload } from '../../services/brainService';
 
 interface StellaStatePanelProps {
@@ -29,14 +29,23 @@ export const StellaStatePanel: React.FC<StellaStatePanelProps> = ({
   const [animationStatus, setAnimationStatus] = useState<AnimationStatus>(() =>
     cantarellaAnimationManager.getStatus()
   );
+  const [discoveredMotions, setDiscoveredMotions] = useState<DiscoveredAnimationItem[]>(() =>
+    cantarellaAnimationManager.getDiscoveredMotions()
+  );
+  const [selectedCategory, setSelectedCategory] = useState<AnimationCategory | 'all'>('all');
+  const [isRescanning, setIsRescanning] = useState<boolean>(false);
   const [expressionNotice, setExpressionNotice] = useState<string | null>(null);
+  const [animationNotice, setAnimationNotice] = useState<string | null>(null);
 
   useEffect(() => {
     return cantarellaExpressionController.subscribe(setExpressionStatus);
   }, []);
 
   useEffect(() => {
-    return cantarellaAnimationManager.subscribe(setAnimationStatus);
+    return cantarellaAnimationManager.subscribe((status) => {
+      setAnimationStatus(status);
+      setDiscoveredMotions(cantarellaAnimationManager.getDiscoveredMotions());
+    });
   }, []);
 
   const toggleTab = (tab: 'system' | 'companion' | 'weather') => {
@@ -223,46 +232,120 @@ export const StellaStatePanel: React.FC<StellaStatePanelProps> = ({
                 </div>
               </div>
 
-              {/* Animation-Test Controls (VRMA Motion Pack) */}
+              {/* Dynamic VRM Animation Explorer */}
               <div className="expression-picker-group">
-                <div className="vrma-section-header">
-                  <span className="expression-picker-label">Animation-Test Controls (VRMA):</span>
-                  {animationStatus.isPlaying && (
+                <div className="anim-explorer-header">
+                  <span className="expression-picker-label">Animation Explorer:</span>
+                  <div className="anim-action-controls">
                     <button
                       type="button"
-                      id="btn-observatory-vrma-stop"
-                      className="vrma-stop-btn"
-                      onClick={() => cantarellaAnimationManager.stopMotion(0.35)}
-                      title="Stop animation and return smoothly to rest pose"
+                      id="btn-observatory-rescan"
+                      className="anim-rescan-btn"
+                      onClick={async () => {
+                        setIsRescanning(true);
+                        try {
+                          const items = await cantarellaAnimationManager.discoverAndRegisterAnimations(true);
+                          setDiscoveredMotions(items);
+                          setAnimationNotice(`Scanned ${items.length} animations (${items.filter((i) => i.compatibility === 'compatible').length} compatible)`);
+                          setTimeout(() => setAnimationNotice(null), 3000);
+                        } catch (err: any) {
+                          setAnimationNotice(`Rescan error: ${err.message}`);
+                        } finally {
+                          setIsRescanning(false);
+                        }
+                      }}
+                      title="Rescan animations folder for newly dropped files"
                     >
-                      Stop
+                      {isRescanning ? 'Scanning...' : 'Rescan ↻'}
                     </button>
-                  )}
+                    {animationStatus.isPlaying && (
+                      <>
+                        <button
+                          type="button"
+                          id="btn-observatory-vrma-pause"
+                          className="anim-pause-btn"
+                          onClick={() => {
+                            if (animationStatus.isPaused) {
+                              cantarellaAnimationManager.resumeMotion();
+                            } else {
+                              cantarellaAnimationManager.pauseMotion();
+                            }
+                          }}
+                          title={animationStatus.isPaused ? 'Resume playback' : 'Pause playback'}
+                        >
+                          {animationStatus.isPaused ? 'Resume' : 'Pause'}
+                        </button>
+                        <button
+                          type="button"
+                          id="btn-observatory-vrma-stop"
+                          className="vrma-stop-btn"
+                          onClick={() => cantarellaAnimationManager.stopMotion(0.35)}
+                          title="Stop animation and return smoothly to rest pose"
+                        >
+                          Stop
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
+
+                {/* Category Filter Pills */}
+                <div className="anim-cat-filter-row" role="tablist" aria-label="Animation Categories">
+                  {(['all', 'idle', 'dance', 'cute_poses', 'conversational', 'action', 'reactions_surprised', 'custom'] as const).map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      id={`btn-anim-cat-${cat}`}
+                      className={`anim-cat-pill ${selectedCategory === cat ? 'active' : ''}`}
+                      onClick={() => setSelectedCategory(cat)}
+                    >
+                      {cat === 'all' ? 'All' : cat.replace('_', ' ')}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Motion Pills Grid */}
                 <div className="expression-buttons-row">
-                  {VRMA_MOTIONS.map((motion) => {
-                    const isActive = animationStatus.activeMotionId === motion.id && animationStatus.isPlaying;
-                    const isLoading = animationStatus.activeMotionId === motion.id && animationStatus.isLoading;
-                    return (
-                      <button
-                        key={motion.id}
-                        type="button"
-                        id={`btn-observatory-vrma-${motion.id.toLowerCase()}`}
-                        className={`expression-btn vrma-btn ${isActive ? 'active' : ''} ${isLoading ? 'loading' : ''}`}
-                        title={`${motion.name} (${motion.file}): ${motion.hint}`}
-                        onClick={() => {
-                          if (isActive) {
-                            cantarellaAnimationManager.stopMotion(0.35);
-                          } else {
-                            cantarellaAnimationManager.playMotion(motion.id);
-                          }
-                        }}
-                      >
-                        {motion.name}
-                      </button>
-                    );
-                  })}
+                  {discoveredMotions
+                    .filter((m) => selectedCategory === 'all' || m.category === selectedCategory)
+                    .map((motion) => {
+                      const isActive = animationStatus.activeMotionId === motion.id && animationStatus.isPlaying;
+                      const isLoading = animationStatus.activeMotionId === motion.id && animationStatus.isLoading;
+                      const isCompatible = motion.compatibility === 'compatible';
+
+                      return (
+                        <button
+                          key={motion.id}
+                          type="button"
+                          id={`btn-observatory-vrma-${motion.id.toLowerCase()}`}
+                          className={`expression-btn vrma-btn ${isActive ? 'active' : ''} ${isLoading ? 'loading' : ''} ${!isCompatible ? 'incompatible' : ''}`}
+                          title={`${motion.displayName} (${motion.fileName})\nDuration: ${motion.duration.toFixed(1)}s\nStatus: ${motion.compatibility}${motion.compatibilityReason ? `\nNote: ${motion.compatibilityReason}` : ''}`}
+                          onClick={() => {
+                            if (!isCompatible) {
+                              setAnimationNotice(`Incompatible '${motion.displayName}': ${motion.compatibilityReason || 'Unsupported format'}`);
+                              return;
+                            }
+                            setAnimationNotice(null);
+                            if (isActive) {
+                              cantarellaAnimationManager.stopMotion(0.35);
+                            } else {
+                              cantarellaAnimationManager.playMotion(motion.id, { loop: motion.isLoop });
+                            }
+                          }}
+                        >
+                          {!isCompatible ? '⚠️ ' : ''}
+                          {motion.displayName}
+                          <span className="anim-meta-badge">
+                            {motion.isLoop ? '🔁' : `${motion.duration.toFixed(0)}s`}
+                          </span>
+                        </button>
+                      );
+                    })}
                 </div>
+
+                {animationNotice && (
+                  <p className="anim-error-notice">{animationNotice}</p>
+                )}
               </div>
 
               <p className="state-footnote">

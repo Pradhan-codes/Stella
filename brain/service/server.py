@@ -19,6 +19,7 @@ CRITICAL SECURITY RULES:
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import logging
+from pathlib import Path
 import re
 import socket
 import sys
@@ -35,6 +36,13 @@ from brain.core.orchestrator import (
     BrainOrchestrator,
     OrchestratorResponse,
     OrchestratorTurnStatus,
+)
+from brain.service.tts import (
+    PiperTTSEngine,
+    TTSError,
+    TTSModelNotFoundError,
+    TTSTimeoutError,
+    TTSSynthesisError,
 )
 
 logger = logging.getLogger("stella.brain.service")
@@ -80,6 +88,28 @@ class BrainServerSettings(BaseModel):
         default_factory=lambda: list(DEFAULT_ALLOWED_ORIGINS),
         description="Permitted browser Origin header values.",
     )
+    tts_enabled: bool = Field(
+        default=True,
+        description="Whether local text-to-speech service is enabled.",
+    )
+    tts_model_path: Optional[str] = Field(
+        default=None,
+        description="Optional custom path to the Piper ONNX model file.",
+    )
+    tts_config_path: Optional[str] = Field(
+        default=None,
+        description="Optional custom path to the companion JSON configuration file.",
+    )
+    tts_timeout_seconds: float = Field(
+        default=20.0,
+        ge=1.0,
+        le=120.0,
+        description="Timeout in seconds for speech synthesis subprocess.",
+    )
+    tts_persistent_model: bool = Field(
+        default=True,
+        description="Whether to keep Piper voice model loaded in memory for low-latency synthesis.",
+    )
 
     @field_validator("host")
     @classmethod
@@ -92,6 +122,27 @@ class BrainServerSettings(BaseModel):
                 f"Permitted addresses: {sorted(list(ALLOWED_LOOPBACK_IPS))}."
             )
         return normalized
+
+
+class TTSRequestPayload(BaseModel):
+    """Validated inbound text-to-speech synthesis request."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    text: str = Field(
+        min_length=1,
+        max_length=4096,
+        description="Plain text message to synthesize into audio.",
+    )
+
+    @field_validator("text")
+    @classmethod
+    def validate_not_blank(cls, v: str) -> str:
+        """Reject empty or whitespace-only text."""
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("Speech text cannot be empty or whitespace only.")
+        return stripped
 
 
 class TurnRequestPayload(BaseModel):
@@ -177,8 +228,9 @@ class HealthResponsePayload(BaseModel):
 def create_handler_class(
     orchestrator: BrainOrchestrator,
     settings: BrainServerSettings,
+    tts_engine: Optional[PiperTTSEngine] = None,
 ) -> Type[BaseHTTPRequestHandler]:
-    """Create a configured BaseHTTPRequestHandler class binding the orchestrator."""
+    """Create a configured BaseHTTPRequestHandler class binding the orchestrator and TTS engine."""
 
     allowed_origins_set: Set[str] = set(settings.allowed_origins)
 
@@ -276,10 +328,15 @@ def create_handler_class(
                 return
 
             parsed_path = urlparse(self.path).path.rstrip("/")
-            if parsed_path != "/api/turn":
+            if parsed_path == "/api/turn":
+                self._handle_turn_post()
+            elif parsed_path in ("/api/tts", "/tts"):
+                self._handle_tts_post()
+            else:
                 self._send_error_json(404, f"Endpoint '{parsed_path}' not found", "NOT_FOUND")
-                return
 
+        def _handle_turn_post(self) -> None:
+            """Handle conversational turn requests."""
             # 1. Validate Content-Length
             content_length_header = self.headers.get("Content-Length")
             if not content_length_header:
@@ -375,6 +432,76 @@ def create_handler_class(
                 logger.error("Internal error processing turn: %s", type(err).__name__)
                 self._send_error_json(500, "Internal error processing conversation turn", "INTERNAL_ERROR")
 
+        def _handle_tts_post(self) -> None:
+            """Handle TTS speech synthesis requests."""
+            # 1. Validate Content-Length
+            content_length_header = self.headers.get("Content-Length")
+            if not content_length_header:
+                self._send_error_json(411, "Missing Content-Length header", "LENGTH_REQUIRED")
+                return
+
+            try:
+                content_length = int(content_length_header)
+            except ValueError:
+                self._send_error_json(400, "Invalid Content-Length header", "BAD_REQUEST")
+                return
+
+            if content_length > settings.max_payload_bytes:
+                self._send_error_json(
+                    413,
+                    f"Payload size ({content_length} bytes) exceeds maximum limit ({settings.max_payload_bytes} bytes)",
+                    "PAYLOAD_TOO_LARGE",
+                )
+                return
+
+            if content_length <= 0:
+                self._send_error_json(400, "Request body cannot be empty", "EMPTY_PAYLOAD")
+                return
+
+            # 2. Read exact body bytes
+            try:
+                body_bytes = self.rfile.read(content_length)
+            except Exception as err:
+                logger.warning("Error reading TTS request body: %s", type(err).__name__)
+                self._send_error_json(400, "Failed to read request body", "READ_ERROR")
+                return
+
+            # 3. Schema validation via Pydantic
+            try:
+                req_data = TTSRequestPayload.model_validate_json(body_bytes)
+            except Exception as parse_err:
+                logger.info("Rejected invalid TTS request payload: %s", type(parse_err).__name__)
+                self._send_error_json(400, "Invalid request schema", "VALIDATION_ERROR")
+                return
+
+            # 4. Check TTS engine availability
+            if tts_engine is None or not settings.tts_enabled:
+                self._send_error_json(503, "Text-to-speech service is disabled or unavailable", "TTS_UNAVAILABLE")
+                return
+
+            # 5. Execute speech synthesis
+            try:
+                wav_bytes = tts_engine.synthesize_to_bytes(req_data.text)
+                self.send_response(200)
+                self.send_header("Content-Type", "audio/wav")
+                self.send_header("Content-Length", str(len(wav_bytes)))
+                self.send_header("X-Content-Type-Options", "nosniff")
+                self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(wav_bytes)
+            except ValueError as val_err:
+                self._send_error_json(400, str(val_err), "INVALID_INPUT")
+            except TTSModelNotFoundError as model_err:
+                self._send_error_json(404, str(model_err), "MODEL_NOT_FOUND")
+            except TTSTimeoutError as to_err:
+                self._send_error_json(504, str(to_err), "TIMEOUT")
+            except TTSSynthesisError as syn_err:
+                self._send_error_json(500, str(syn_err), "TTS_ERROR")
+            except Exception as err:
+                logger.error("Internal error processing TTS request: %s", type(err).__name__)
+                self._send_error_json(500, "Internal error processing speech synthesis", "INTERNAL_ERROR")
+
         def log_message(self, format: str, *args: Any) -> None:
             """Sanitize request logging to prevent leaking prompt text or tokens."""
             # Diagnostic only; never log query parameters or body content
@@ -394,10 +521,25 @@ class BrainServer:
         self,
         orchestrator: Optional[BrainOrchestrator] = None,
         settings: Optional[BrainServerSettings] = None,
+        tts_engine: Optional[PiperTTSEngine] = None,
     ) -> None:
         self.settings = settings or BrainServerSettings()
         self.orchestrator = orchestrator or BrainOrchestrator()
-        handler_cls = create_handler_class(self.orchestrator, self.settings)
+        if tts_engine is not None:
+            self.tts_engine: Optional[PiperTTSEngine] = tts_engine
+        elif self.settings.tts_enabled:
+            model_path = Path(self.settings.tts_model_path) if self.settings.tts_model_path else None
+            config_path = Path(self.settings.tts_config_path) if self.settings.tts_config_path else None
+            self.tts_engine = PiperTTSEngine(
+                model_path=model_path,
+                config_path=config_path,
+                timeout_seconds=self.settings.tts_timeout_seconds,
+                use_persistent_model=self.settings.tts_persistent_model,
+            )
+        else:
+            self.tts_engine = None
+
+        handler_cls = create_handler_class(self.orchestrator, self.settings, self.tts_engine)
 
         self._server = ThreadingHTTPServer(
             (self.settings.host, self.settings.port),
@@ -436,6 +578,11 @@ class BrainServer:
         self._running = False
         self._server.shutdown()
         self._server.server_close()
+        if self.tts_engine:
+            try:
+                self.tts_engine.close()
+            except Exception:
+                pass
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=2.0)
         logger.info("Stella Brain HTTP API stopped")

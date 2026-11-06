@@ -2,11 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   sendTurn,
   applyExpressionHint,
+  speakSpeechText,
+  stopSpeechAudio,
+  setConversationState,
   TurnResponsePayload,
   HealthResponsePayload,
   ActionProposalSummary,
   ConfirmationPromptSummary,
 } from '../../services/brainService';
+import { cantarellaActionRegistry } from '../CompanionPanel/CantarellaActionRegistry';
 
 interface MessageItem {
   id: string;
@@ -40,20 +44,83 @@ export const StellaDialogueModal: React.FC<StellaDialogueModalProps> = ({
   ]);
   const [inputValue, setInputValue] = useState<string>('');
   const [isSending, setIsSending] = useState<boolean>(false);
+  const [isVoiceEnabled, setIsVoiceEnabled] = useState<boolean>(true);
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) {
+      setConversationState('listening');
       setTimeout(() => inputRef.current?.focus(), 50);
+    } else {
+      stopSpeechAudio();
+      setSpeakingMessageId(null);
+      setConversationState('idle');
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    return () => {
+      stopSpeechAudio();
+      setConversationState('idle');
+    };
+  }, []);
+
+  useEffect(() => {
+    // Keep dialogue messages in sync if turn was initiated from the companion overlay
+    const unbind = window.stellaDesktop?.onDialogueTurnChanged?.((turn) => {
+      if (turn.assistantText && turn.status !== 'thinking') {
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === turn.turnId)) return prev;
+          const assistantMsg: MessageItem = {
+            id: turn.turnId,
+            sender: 'assistant',
+            text: turn.assistantText,
+            expressionHint: turn.expressionHint,
+            isError: turn.status === 'error',
+          };
+          if (turn.userMessage && !prev.some((m) => m.text === turn.userMessage && m.sender === 'user')) {
+            const userMsg: MessageItem = {
+              id: `usr_${turn.turnId}`,
+              sender: 'user',
+              text: turn.userMessage,
+            };
+            return [...prev, userMsg, assistantMsg];
+          }
+          return [...prev, assistantMsg];
+        });
+      }
+    });
+    return () => unbind?.();
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isSending]);
 
   if (!isOpen) return null;
+
+  const handlePlayMessageAudio = async (msgId: string, text: string) => {
+    if (!text) return;
+    if (speakingMessageId === msgId) {
+      stopSpeechAudio();
+      setSpeakingMessageId(null);
+      if (isOpen) setConversationState('listening');
+      return;
+    }
+    setSpeakingMessageId(msgId);
+    try {
+      await speakSpeechText(text);
+    } catch (err) {
+      console.warn('Audio playback error:', err);
+    } finally {
+      setSpeakingMessageId((curr) => (curr === msgId ? null : curr));
+      if (isOpen) {
+        setConversationState('listening');
+      }
+    }
+  };
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -69,10 +136,50 @@ export const StellaDialogueModal: React.FC<StellaDialogueModalProps> = ({
     setMessages((prev) => [...prev, userMsg]);
     setInputValue('');
     setIsSending(true);
+    setConversationState('thinking');
+
+    // 1. Resolve natural-language action intent
+    const actionIntent = cantarellaActionRegistry.resolveIntent(trimmed);
+    let dispatchedActionId: string | null = null;
+    let perceptualState: Record<string, unknown> = {};
+
+    if (actionIntent.type === 'command' && actionIntent.actionId) {
+      dispatchedActionId = actionIntent.actionId;
+      cantarellaActionRegistry.executeAction(actionIntent.actionId).catch((err) => {
+        console.warn('[DialogueModal Action] Execution error:', err);
+      });
+      perceptualState = {
+        action_requested: actionIntent.actionId,
+        action_name: actionIntent.actionName,
+        action_dispatched: true,
+      };
+    } else if (actionIntent.type === 'unknown_command') {
+      perceptualState = {
+        action_requested: actionIntent.requestedTerm,
+        action_supported: false,
+      };
+    } else if (actionIntent.type === 'query') {
+      perceptualState = {
+        action_query: true,
+      };
+    }
+
+    // Notify desktop IPC of thinking turn
+    const activeTurnId = `turn_${Date.now()}`;
+    window.stellaDesktop?.sendDialogueTurn?.({
+      turnId: activeTurnId,
+      userMessage: trimmed,
+      assistantText: '',
+      actionId: dispatchedActionId,
+      actionStatus: dispatchedActionId ? 'dispatched' : 'none',
+      status: 'thinking',
+      timestamp: Date.now(),
+    });
 
     try {
       const response: TurnResponsePayload = await sendTurn({
         user_message: trimmed,
+        perceptual_state: perceptualState,
       });
 
       // Apply emotional expression hint to Cantarella avatar
@@ -80,8 +187,20 @@ export const StellaDialogueModal: React.FC<StellaDialogueModalProps> = ({
         applyExpressionHint(response.expression_hint);
       }
 
+      // Check if brain proposed an avatar animation if not already dispatched
+      let finalActionId = dispatchedActionId;
+      if (!finalActionId && response.proposed_actions?.length) {
+        const animProposal = response.proposed_actions.find(
+          (p) => p.action_name === 'avatar_animation' && typeof p.parameters?.animation_id === 'string'
+        );
+        if (animProposal && cantarellaActionRegistry.isRegistered(animProposal.parameters.animation_id as string)) {
+          finalActionId = animProposal.parameters.animation_id as string;
+        }
+      }
+
+      const turnId = response.turn_id || activeTurnId;
       const assistantMsg: MessageItem = {
-        id: response.turn_id || `turn_${Date.now()}`,
+        id: turnId,
         sender: 'assistant',
         text: response.user_facing_text || '(Empty response from reasoning engine)',
         expressionHint: response.expression_hint,
@@ -91,7 +210,48 @@ export const StellaDialogueModal: React.FC<StellaDialogueModalProps> = ({
         isError: response.status === 'failed',
       };
 
+      // 1. Text response is displayed immediately
       setMessages((prev) => [...prev, assistantMsg]);
+
+      // Check whether desktop companion overlay is the active presentation output
+      const isOverlayActive =
+        window.stellaDesktop?.windowType === 'companion' ||
+        (typeof document !== 'undefined' &&
+          document.body.classList.contains('companion-overlay-active'));
+
+      // 2. Dispatch turn to desktop IPC for presentation in the Companion Overlay
+      window.stellaDesktop?.sendDialogueTurn?.({
+        turnId,
+        userMessage: trimmed,
+        assistantText: response.user_facing_text || '',
+        expressionHint: response.expression_hint,
+        actionId: finalActionId,
+        actionStatus: dispatchedActionId ? 'dispatched' : finalActionId ? 'dispatched' : 'none',
+        status: isVoiceEnabled && response.user_facing_text ? 'speaking' : 'completed',
+        timestamp: Date.now(),
+      });
+
+      // 3. Play speech audio asynchronously if voice is enabled and companion is NOT active
+      // When companion overlay is active, the overlay owns conversational audio output
+      if (isVoiceEnabled && response.user_facing_text && !assistantMsg.isError) {
+        if (!isOverlayActive) {
+          setSpeakingMessageId(assistantMsg.id);
+          speakSpeechText(response.user_facing_text)
+            .catch((speechErr) => {
+              console.warn('Stella local voice playback failed gracefully:', speechErr);
+            })
+            .finally(() => {
+              setSpeakingMessageId((curr) => (curr === assistantMsg.id ? null : curr));
+              if (isOpen) {
+                setConversationState('listening');
+              }
+            });
+        }
+      } else {
+        if (isOpen) {
+          setConversationState('listening');
+        }
+      }
     } catch (err: unknown) {
       const errorText = err instanceof Error ? err.message : String(err);
       const errorMsg: MessageItem = {
@@ -101,16 +261,26 @@ export const StellaDialogueModal: React.FC<StellaDialogueModalProps> = ({
         isError: true,
       };
       setMessages((prev) => [...prev, errorMsg]);
+      if (isOpen) {
+        setConversationState('listening');
+      }
     } finally {
       setIsSending(false);
     }
+  };
+
+  const handleModalClose = () => {
+    stopSpeechAudio();
+    setSpeakingMessageId(null);
+    setConversationState('idle');
+    onClose();
   };
 
   return (
     <div
       className="stella-dialogue-overlay"
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) handleModalClose();
       }}
       role="dialog"
       aria-modal="true"
@@ -125,14 +295,33 @@ export const StellaDialogueModal: React.FC<StellaDialogueModalProps> = ({
               {health?.model ? `${health.model} • 127.0.0.1:8000` : '127.0.0.1:8000 Active'}
             </span>
           </div>
-          <button
-            type="button"
-            className="stella-dialogue-close"
-            onClick={onClose}
-            aria-label="Close dialogue"
-          >
-            ×
-          </button>
+          <div className="stella-dialogue-actions-group">
+            <button
+              type="button"
+              className={`stella-dialogue-voice-btn ${isVoiceEnabled ? 'active' : ''}`}
+              onClick={() => {
+                if (isVoiceEnabled) {
+                  stopSpeechAudio();
+                  setSpeakingMessageId(null);
+                }
+                setIsVoiceEnabled(!isVoiceEnabled);
+              }}
+              title={isVoiceEnabled ? 'Mute Stella voice' : 'Enable Stella voice (Piper TTS)'}
+              aria-label={isVoiceEnabled ? 'Mute Stella voice' : 'Enable Stella voice'}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                {isVoiceEnabled ? 'volume_up' : 'volume_off'}
+              </span>
+            </button>
+            <button
+              type="button"
+              className="stella-dialogue-close"
+              onClick={handleModalClose}
+              aria-label="Close dialogue"
+            >
+              ×
+            </button>
+          </div>
         </div>
 
         {/* Message Thread */}
@@ -178,6 +367,19 @@ export const StellaDialogueModal: React.FC<StellaDialogueModalProps> = ({
                     <span>Stella</span>
                     {msg.expressionHint && <span>• Expression: {msg.expressionHint}</span>}
                     {msg.durationMs ? <span>• {Math.round(msg.durationMs)}ms</span> : null}
+                    {!msg.isError && (
+                      <button
+                        type="button"
+                        className={`stella-msg-voice-replay ${speakingMessageId === msg.id ? 'speaking' : ''}`}
+                        onClick={() => handlePlayMessageAudio(msg.id, msg.text)}
+                        title={speakingMessageId === msg.id ? 'Stop speech' : 'Listen with Piper TTS'}
+                        aria-label="Listen with Piper TTS"
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>
+                          {speakingMessageId === msg.id ? 'stop_circle' : 'volume_up'}
+                        </span>
+                      </button>
+                    )}
                   </>
                 )}
                 {msg.sender === 'user' && <span>You</span>}

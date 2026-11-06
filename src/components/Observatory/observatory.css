@@ -1035,3 +1035,157 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.stella-dialogue-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stella-dialogue-voice-btn {
+  background: none;
+  border: 1px solid rgba(226, 222, 239, 0.2);
+  color: var(--dim);
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.stella-dialogue-voice-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--silver);
+  border-color: rgba(226, 222, 239, 0.4);
+}
+
+.stella-dialogue-voice-btn.active {
+  background: rgba(143, 120, 212, 0.2);
+  border-color: rgba(143, 120, 212, 0.5);
+  color: #c4b5fd;
+}
+
+.stella-msg-voice-replay {
+  background: none;
+  border: none;
+  color: var(--dim);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  margin-left: 4px;
+}
+
+.stella-msg-voice-replay:hover {
+  color: #c4b5fd;
+  background: rgba(143, 120, 212, 0.15);
+}
+
+.stella-msg-voice-replay.speaking {
+  color: #a78bfa;
+  animation: pulseAudio 1.2s infinite ease-in-out;
+}
+
+@keyframes pulseAudio {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.15);
+  }
+}
+
+/* Dynamic Animation Explorer (Phase 7.8) */
+.anim-explorer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.anim-action-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.anim-rescan-btn,
+.anim-pause-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--silver);
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.anim-rescan-btn:hover,
+.anim-pause-btn:hover {
+  background: rgba(95, 209, 196, 0.2);
+  border-color: #5fd1c4;
+  color: #fff;
+}
+
+.anim-cat-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.anim-cat-pill {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--dim);
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 99px;
+  cursor: pointer;
+  text-transform: capitalize;
+  transition: all 0.15s ease;
+}
+
+.anim-cat-pill:hover {
+  color: var(--silver);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.anim-cat-pill.active {
+  background: rgba(95, 209, 196, 0.2);
+  border-color: #5fd1c4;
+  color: #5fd1c4;
+  font-weight: 600;
+}
+
+.expression-btn.vrma-btn.incompatible {
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #f87171;
+  opacity: 0.75;
+}
+
+.anim-meta-badge {
+  font-size: 8px;
+  opacity: 0.7;
+  margin-left: 3px;
+}
+
+.anim-error-notice {
+  font-size: 11px;
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 4px;
+  padding: 4px 8px;
+  margin-top: 6px;
+  line-height: 1.3;
+}
+

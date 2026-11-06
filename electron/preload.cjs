@@ -63,4 +63,63 @@ contextBridge.exposeInMainWorld('stellaDesktop', {
   minimizeWindow: () => ipcRenderer.send('stella:window-minimize'),
   maximizeWindow: () => ipcRenderer.send('stella:window-maximize'),
   closeWindow: () => ipcRenderer.send('stella:window-close'),
+
+  // Avatar state synchronization across windows
+  sendAvatarState: (state) => {
+    if (!state || typeof state !== 'object') return;
+    ipcRenderer.send('stella:avatar-sync', state);
+  },
+
+  getAvatarState: () => ipcRenderer.invoke('stella:get-avatar-state'),
+
+  onAvatarStateChanged: (callback) => {
+    if (typeof callback !== 'function') return () => {};
+    const subscription = (_event, state) => {
+      if (state && typeof state === 'object') {
+        callback(state);
+      }
+    };
+    ipcRenderer.on('stella:avatar-state-changed', subscription);
+    return () => {
+      ipcRenderer.removeListener('stella:avatar-state-changed', subscription);
+    };
+  },
+
+  // Conversational dialogue turn synchronization across windows
+  sendDialogueTurn: (turn) => {
+    if (!turn || typeof turn !== 'object') return;
+    ipcRenderer.send('stella:dialogue-sync', turn);
+  },
+
+  getDialogueTurn: () => ipcRenderer.invoke('stella:get-dialogue-turn'),
+
+  onDialogueTurnChanged: (callback) => {
+    if (typeof callback !== 'function') return () => {};
+    const subscription = (_event, turn) => {
+      if (turn && typeof turn === 'object') {
+        callback(turn);
+      }
+    };
+    ipcRenderer.on('stella:dialogue-turn-changed', subscription);
+    return () => {
+      ipcRenderer.removeListener('stella:dialogue-turn-changed', subscription);
+    };
+  },
+
+  // Dynamic Animation Discovery
+  discoverAnimations: (forceRescan) =>
+    ipcRenderer.invoke('stella:discover-animations', Boolean(forceRescan)),
+
+  onAnimationsUpdated: (callback) => {
+    if (typeof callback !== 'function') return () => {};
+    const subscription = (_event, report) => {
+      if (report && typeof report === 'object') {
+        callback(report);
+      }
+    };
+    ipcRenderer.on('stella:animations-updated', subscription);
+    return () => {
+      ipcRenderer.removeListener('stella:animations-updated', subscription);
+    };
+  },
 });

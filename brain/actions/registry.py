@@ -101,6 +101,28 @@ class PurgeDatabaseParams(BaseModel):
     )
 
 
+class AvatarAnimationParams(BaseModel):
+    """Parameters for avatar_animation action."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    animation_id: Literal[
+        "VRMA_01",
+        "VRMA_02",
+        "VRMA_03",
+        "VRMA_04",
+        "VRMA_05",
+        "VRMA_06",
+        "VRMA_07",
+        "VRMA_EXTRA",
+        "nod",
+        "wave",
+    ] = Field(
+        description="Verified avatar motion or gesture identifier.",
+    )
+
+
+
 # ============================================================================
 # Action Policy Definition
 # ============================================================================
@@ -204,6 +226,20 @@ def create_default_registry() -> ActionRegistry:
                     {"name": "Vega", "category": "star"},
                     {"name": "Betelgeuse", "category": "star"},
                 ][: params.get("limit", 10)],
+            },
+        )
+    )
+
+    registry.register(
+        ActionPolicy(
+            action_name="avatar_animation",
+            description="Trigger an avatar animation motion or procedural gesture on Cantarella.",
+            risk_level="read_only",
+            requires_confirmation=False,
+            parameter_schema=AvatarAnimationParams,
+            handler=lambda params: {
+                "status": "executed",
+                "animation_id": params["animation_id"],
             },
         )
     )

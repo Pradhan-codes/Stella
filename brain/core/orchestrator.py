@@ -292,6 +292,20 @@ class BrainOrchestrator:
             except Exception:
                 pass
 
+        # Check if text contains an unclosed or partial user_facing_text field
+        match = re.search(
+            r'"(?:user_facing_text|response|message|text|dialogue|reply)"\s*:\s*"((?:[^"\\]|\\.)*)',
+            cleaned,
+        )
+        if match:
+            try:
+                extracted = json.loads(f'"{match.group(1)}"')
+                if extracted.strip():
+                    return sanitize_hallucinated_placeholders(extracted.strip())
+            except Exception:
+                if match.group(1).strip():
+                    return sanitize_hallucinated_placeholders(match.group(1).strip())
+
         return sanitize_hallucinated_placeholders(cleaned)
 
 
